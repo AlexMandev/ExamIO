@@ -1,0 +1,13 @@
+.idea
+.vscode
+
+.scala-build
+.bsp
+target
+
+.bloop
+.metals
+.ammonite
+metals.sbt
+
+.DS_Store
