@@ -19,7 +19,8 @@ object AppConfig:
       config.getString("db.name"),
       config.getString("db.user"),
       config.getString("db.password"),
-      config.getInt("db.connectionPoolSize")
+      config.getInt("db.connectionPoolSize"),
+      config.getString("db.migrationTable")
     )
 
     val httpConfig = HttpConfig(config.getString("http.host"), config.getInt("http.port"))

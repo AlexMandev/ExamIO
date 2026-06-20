@@ -12,6 +12,7 @@ scalacOptions ++= Seq(
 val doobieVersion = "1.0.0-RC12"
 val tapirVersion = "1.13.23"
 val http4sVersion = "0.23.34"
+val flywayVersion = "12.7.0"
 
 libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-core" % "2.13.0",
@@ -25,6 +26,9 @@ libraryDependencies ++= Seq(
   "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion,
 
   "org.http4s" %% "http4s-ember-server" % http4sVersion,
+
+  "org.flywaydb" % "flyway-core" % flywayVersion,
+  "org.flywaydb" % "flyway-database-postgresql" % flywayVersion,
 
   "com.typesafe" % "config" % "1.4.8",
 
