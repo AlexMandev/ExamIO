@@ -10,6 +10,8 @@ class DBMigrator(dbConfig: DBConfig):
     .dataSource(dbConfig.url, dbConfig.user, dbConfig.password)
     .locations("classpath:/db-migrations")
     .table(dbConfig.migrationTable)
+    .baselineOnMigrate(true)
+    .cleanDisabled(false)
     .load()
 
   def migrate: IO[MigrateResult] =
