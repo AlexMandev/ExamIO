@@ -3,7 +3,6 @@ package infrastructure.auth
 import cats.data.EitherT
 import cats.effect.IO
 import cats.syntax.all.*
-import infrastructure.auth.{AuthenticationError, ForbiddenResource, UnauthorizedAccess, userRoleKey}
 import sttp.tapir.Endpoint
 import sttp.tapir.server.PartialServerEndpoint
 import user.UserRole

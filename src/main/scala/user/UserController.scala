@@ -14,17 +14,4 @@ class UserController(userService: UserService, authService: AuthenticationServic
     UserEndpoints.loginEndpoint.serverLogic: form =>
       userService.login(form).map(_.toRight(()))
 
-  // test endpoints - delete after testing
-  def me =
-    UserEndpoints.anyUserEndpoint.authenticate.serverLogic: user =>
-      _ => IO.pure(Right(s"Hello, ${user.id} with role ${user.role}"))
-
-  def teacherOnly =
-    UserEndpoints.teacherOnlyEndpoint.authenticate.serverLogic: user =>
-      _ => IO.pure(Right(s"Hello teacher ${user.id}"))
-
-  def studentOnly =
-    UserEndpoints.studentOnlyEndpoint.authenticate.serverLogic: user =>
-      _ => IO.pure(Right(s"Hello student ${user.id}"))
-
-  val endpoints = List(registerUser, login, me, teacherOnly, studentOnly)
+  val endpoints = List(registerUser, login)

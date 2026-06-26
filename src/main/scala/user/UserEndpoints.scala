@@ -21,22 +21,3 @@ object UserEndpoints:
     .out(jsonBody[String])
     .errorOut(statusCode(Unauthorized))
     .post
-
-  // test endpoints - delete after testing
-  val anyUserEndpoint = baseUsersEndpoint
-    .in("me")
-    .out(jsonBody[String])
-    .get
-    .secure
-
-  val teacherOnlyEndpoint = baseUsersEndpoint
-    .in("teacher-only")
-    .out(jsonBody[String])
-    .get
-    .secure(UserRole.TEACHER)
-
-  val studentOnlyEndpoint = baseUsersEndpoint
-    .in("student-only")
-    .out(jsonBody[String])
-    .get
-    .secure(UserRole.STUDENT)
