@@ -1,7 +1,7 @@
 package user
 
-import infrastructure.ExamIOEndpoints.apiBaseEndpoint
-import sttp.model.StatusCode.{BadRequest, Conflict, Created}
+import infrastructure.ExamIOEndpoints.*
+import sttp.model.StatusCode.{BadRequest, Created, Unauthorized}
 import sttp.tapir.*
 import sttp.tapir.json.circe.jsonBody
 
@@ -14,3 +14,29 @@ object UserEndpoints:
     .errorOut(statusCode(BadRequest).and(jsonBody[UserRegistrationError]))
     .out(statusCode(Created).and(jsonBody[User]))
     .post
+
+  val loginEndpoint = baseUsersEndpoint
+    .in("login")
+    .in(jsonBody[UserLoginForm])
+    .out(jsonBody[String])
+    .errorOut(statusCode(Unauthorized))
+    .post
+
+  // test endpoints - delete after testing
+  val anyUserEndpoint = baseUsersEndpoint
+    .in("me")
+    .out(jsonBody[String])
+    .get
+    .secure
+
+  val teacherOnlyEndpoint = baseUsersEndpoint
+    .in("teacher-only")
+    .out(jsonBody[String])
+    .get
+    .secure(UserRole.TEACHER)
+
+  val studentOnlyEndpoint = baseUsersEndpoint
+    .in("student-only")
+    .out(jsonBody[String])
+    .get
+    .secure(UserRole.STUDENT)

@@ -23,7 +23,9 @@ class UserRepository(dbTransactor: DBTransactor):
       }
       .transact(dbTransactor)
 
-  def getById(id: UUID): IO[Option[User]] = getByUniqueWhereCondition(sql"id = ${id}")
+  def getById(id: UUID): IO[Option[User]] = getByUniqueWhereCondition(sql"id = $id")
+
+  def getByEmail(email: String): IO[Option[User]] = getByUniqueWhereCondition(sql"email = $email")
 
   private def getByUniqueWhereCondition(condition: Fragment): IO[Option[User]] =
     sql"""

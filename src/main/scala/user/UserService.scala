@@ -5,12 +5,13 @@ import cats.effect.IO
 import cats.syntax.all.*
 import io.circe.Codec
 import sttp.tapir.Schema
-import utils.HashUtils
+import utils.HashUtils.{checkPassword, hashPassword}
+import infrastructure.auth.TokenSignatureService
 import sttp.tapir.integ.cats.codec.*
 
 import java.util.UUID
 
-class UserService(userRepository: UserRepository):
+class UserService(userRepository: UserRepository, tokenService: TokenSignatureService):
   def registerUser(form: UserRegistrationForm): IO[Either[UserRegistrationError, User]] =
     UserRegistrationForm
       .validate(form)
@@ -19,10 +20,18 @@ class UserService(userRepository: UserRepository):
         newUser => createUser(newUser)
       )
 
+  def login(form: UserLoginForm): IO[Option[String]] =
+    for
+      maybeUser <- userRepository.getByEmail(form.email)
+      maybeToken <- maybeUser
+        .filter(user => checkPassword(form.password, user.passwordHash))
+        .traverse(tokenService.sign)
+    yield maybeToken
+
   private def createUser(newUser: NewUser) =
     for
-      id = UUID.randomUUID()
-      hashedPwd <- IO.blocking(HashUtils.hashPassword(newUser.password))
+      id <- IO(UUID.randomUUID())
+      hashedPwd <- IO.blocking(hashPassword(newUser.password))
       registeredUser <- userRepository.registerUser(
         User(id, newUser.email, hashedPwd, newUser.firstName, newUser.lastName, newUser.role)
       )

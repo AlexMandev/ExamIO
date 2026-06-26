@@ -1,7 +1,7 @@
 import cats.effect.kernel.Resource
 import cats.effect.{IO, IOApp}
 import com.comcast.ip4s.{Host, Port, ipv4, port}
-import infrastructure.ExamIOEndpoints
+import infrastructure.auth.TokenSignatureService
 import infrastructure.config.AppConfig
 import infrastructure.db.DBModule
 import org.http4s.ember.server.EmberServerBuilder
@@ -17,7 +17,9 @@ object ExamIO extends IOApp.Simple:
 
     dbModule <- DBModule(config.dbConfig)
 
-    userModule <- UserModule(dbModule.dbTransactor)
+    tokenSignatureService = TokenSignatureService(config.jwtConfig)
+
+    userModule <- UserModule(dbModule.dbTransactor, tokenSignatureService)
 
     apiEndpoints = userModule.endpoints
 
