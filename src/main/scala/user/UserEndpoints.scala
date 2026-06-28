@@ -4,6 +4,7 @@ import infrastructure.ExamIOEndpoints.*
 import sttp.model.StatusCode.{BadRequest, Created, Unauthorized}
 import sttp.tapir.*
 import sttp.tapir.json.circe.jsonBody
+import user.UserRole.TEACHER
 
 object UserEndpoints:
   private val baseUsersEndpoint = apiBaseEndpoint.in("users")
@@ -18,6 +19,6 @@ object UserEndpoints:
   val loginEndpoint = baseUsersEndpoint
     .in("login")
     .in(jsonBody[UserLoginForm])
-    .out(jsonBody[String])
     .errorOut(statusCode(Unauthorized))
+    .out(stringBody)
     .post
