@@ -9,6 +9,8 @@ case class DBModule(dbTransactor: DBTransactor)
 
 object DBModule:
   def apply(dbConfig: DBConfig): Resource[IO, DBModule] = for
+    _ <- Resource.eval(new DBMigrator(dbConfig).migrate)
+
     execContext <- ExecutionContexts.fixedThreadPool(dbConfig.connectionPoolSize)
 
     transactor <- HikariTransactor.newHikariTransactor(

@@ -6,7 +6,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import infrastructure.db.DBConfig
 import infrastructure.http.HttpConfig
 
-case class ExamIOConfig(dbConfig: DBConfig, httpConfig: HttpConfig)
+case class ExamIOConfig(dbConfig: DBConfig, httpConfig: HttpConfig, jwtConfig: JwtConfig)
 
 object AppConfig:
   def loadConfig: Resource[IO, ExamIOConfig] =
@@ -19,9 +19,11 @@ object AppConfig:
       config.getString("db.name"),
       config.getString("db.user"),
       config.getString("db.password"),
-      config.getInt("db.connectionPoolSize")
+      config.getInt("db.connectionPoolSize"),
+      config.getString("db.migrationTable")
     )
 
     val httpConfig = HttpConfig(config.getString("http.host"), config.getInt("http.port"))
+    val jwtConfig = JwtConfig(config.getString("jwt.secret"), config.getLong("jwt.expirationSeconds"))
 
-    ExamIOConfig(dbConfig, httpConfig)
+    ExamIOConfig(dbConfig, httpConfig, jwtConfig)

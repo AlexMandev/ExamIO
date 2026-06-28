@@ -1,12 +1,14 @@
 import cats.effect.kernel.Resource
 import cats.effect.{IO, IOApp}
-import com.comcast.ip4s.{Port, Host, ipv4, port}
-import infrastructure.ExamIOEndpoints
+import com.comcast.ip4s.{Host, Port, ipv4, port}
+import infrastructure.auth.TokenSignatureService
 import infrastructure.config.AppConfig
 import infrastructure.db.DBModule
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Server
 import sttp.tapir.server.http4s.Http4sServerInterpreter
+import sttp.tapir.swagger.bundle.SwaggerInterpreter
+import user.UserModule
 
 object ExamIO extends IOApp.Simple:
   val app: Resource[IO, Server] = for
@@ -15,8 +17,14 @@ object ExamIO extends IOApp.Simple:
 
     dbModule <- DBModule(config.dbConfig)
 
-    apiEndpoints = ExamIOEndpoints.exampleEndpoints
-    examIOHttpApp = Http4sServerInterpreter[IO]().toRoutes(apiEndpoints).orNotFound
+    tokenSignatureService = TokenSignatureService(config.jwtConfig)
+
+    userModule <- UserModule(dbModule.dbTransactor, tokenSignatureService)
+
+    apiEndpoints = userModule.endpoints
+
+    docs = SwaggerInterpreter().fromServerEndpoints[IO](apiEndpoints, "ExamIO", "1.0.0")
+    examIOHttpApp = Http4sServerInterpreter[IO]().toRoutes(apiEndpoints ::: docs).orNotFound
 
     server <- EmberServerBuilder
       .default[IO]
