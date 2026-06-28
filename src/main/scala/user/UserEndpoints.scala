@@ -7,7 +7,7 @@ import sttp.tapir.json.circe.jsonBody
 import user.UserRole.TEACHER
 
 object UserEndpoints:
-  private val baseUsersEndpoint = apiBaseEndpoint.in("users")
+  private val baseUsersEndpoint = apiBaseEndpoint.in("users").tag("Users")
 
   val registerUserEndpoint = baseUsersEndpoint
     .in("register")
