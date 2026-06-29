@@ -1,34 +1,30 @@
 package question
 
-import exam.{ExamError, ExamId, ExamDoesNotExist, NotAnOwner}
 import sttp.tapir.*
+import sttp.tapir.generic.auto.*
 import sttp.tapir.json.circe.jsonBody
-import sttp.model.StatusCode.{Created, NotFound}
+import sttp.tapir.integ.cats.codec.*
+import sttp.model.StatusCode.{BadRequest, Conflict, Created, Forbidden, NotFound}
 import infrastructure.ExamIOEndpoints.*
 import user.UserRole.TEACHER
-
-type SomeType = String
+import exam.{ExamId, NotAnOwner}
 
 object QuestionEndpoints:
   private val questionsBaseEndpoint = apiBaseEndpoint
-    .in("exams" / path[ExamId] / "questions")
+    .in("exams" / path[ExamId]("examId") / "questions")
     .tag("Questions")
 
-  private val securedBaseForTeachers =
-    questionsBaseEndpoint
-      .secure(TEACHER)
-      .errorOutVariant(oneOfVariant(statusCode(NotFound).and(jsonBody[ExamDoesNotExist])))
-      .errorOutVariant(oneOfVariant(statusCode(Forbidden).and(jsonBody[NotAnOwner])))
+  private val teachersBaseSecureEndpoint = questionsBaseEndpoint.secure(TEACHER)
 
   val getExamQuestionsEndpoint = questionsBaseEndpoint.out(jsonBody[List[Question]]).get
 
   val addQuestionEndpoint =
-    securedBaseForTeachers
+    questionsBaseEndpoint
+      .secure(TEACHER)
       .in(jsonBody[QuestionForm])
+      .errorOutVariant(oneOfVariant(statusCode(NotFound).and(jsonBody[ExamNotFound])))
+      .errorOutVariant(oneOfVariant(statusCode(Forbidden).and(jsonBody[NotAnOwner])))
+      .errorOutVariant(oneOfVariant(statusCode(BadRequest).and(jsonBody[QuestionFormValidationError])))
+      .errorOutVariant(oneOfVariant(statusCode(Conflict).and(jsonBody[ExamNotDraft])))
+      .out(statusCode(Created).and(jsonBody[Question]))
       .post
-
-  val deleteQuestionEndpoint = securedBaseForTeachers
-    .errorOutVariant(oneOfVariant(statusCode(NotFound).and(jsonBody[QuestionNotFound])))
-    .errorOutVariant(oneOfVariant(statusCode(Conflict).and(jsonBody[ExamNotDraft])))
-    .in(path[QuestionId]("questionId"))
-    .delete
