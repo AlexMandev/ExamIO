@@ -5,11 +5,13 @@ import cats.effect.IO
 import cats.syntax.all.*
 import io.circe.Codec
 import sttp.tapir.Schema
-import utils.HashUtils.{checkPassword, hashPassword}
 import infrastructure.auth.TokenSignatureService
 import sttp.tapir.integ.cats.codec.*
 
 import java.util.UUID
+
+import utils.HashUtils.{checkPassword, hashPassword}
+import utils.DerivationConfiguration.given
 
 class UserService(userRepository: UserRepository, tokenService: TokenSignatureService):
   def registerUser(form: UserRegistrationForm): IO[Either[UserRegistrationError, User]] =

@@ -4,7 +4,9 @@ import cats.data.{Validated, ValidatedNec}
 import cats.syntax.all.*
 import io.circe.Codec
 import sttp.tapir.Schema
+
 import utils.ValidationUtils
+import utils.DerivationConfiguration.given
 
 type ValidationResult[A] = ValidatedNec[RegistrationFormError, A]
 
