@@ -2,6 +2,9 @@ package exam
 
 import infrastructure.auth.AuthenticationService
 
+import cats.effect.IO
+import cats.syntax.all.*
+
 class ExamController(examService: ExamService, authenticationService: AuthenticationService):
   import authenticationService.*
 
@@ -9,4 +12,16 @@ class ExamController(examService: ExamService, authenticationService: Authentica
     examService.createExam(form, user.id)
   }
 
-  val endpoints = List()
+  def getOwnExams = ExamEndpoints.getOwnExamsEndpoint.authenticate.serverLogic { user => _ =>
+    examService.getExamsBy(user.id).map(_.asRight)
+  }
+
+  def openExam = ExamEndpoints.openExamEndpoint.authenticate.serverLogic { user => examId =>
+    examService.openExam(examId, user.id)
+  }
+
+  def closeExam = ExamEndpoints.closeExamEndpoint.authenticate.serverLogic { user => examId =>
+    examService.closeExam(examId, user.id)
+  }
+
+  val endpoints = List(createExam, getOwnExams, openExam, closeExam)
