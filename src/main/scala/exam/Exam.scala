@@ -10,9 +10,7 @@ import io.circe.Codec
 import io.circe.derivation.ConfiguredEnumCodec
 
 import sttp.tapir
-import sttp.tapir.Schema
-import sttp.tapir.SchemaType
-import sttp.tapir.{CodecFormat, Schema, SchemaType}
+import sttp.tapir.{CodecFormat, Schema}
 
 import utils.DerivationConfiguration.given
 

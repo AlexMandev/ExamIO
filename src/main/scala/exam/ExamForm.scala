@@ -2,11 +2,13 @@ package exam
 
 import io.circe.Codec
 import sttp.tapir.Schema
-import cats.data.ValidatedNec
 
+import cats.data.ValidatedNec
 import cats.syntax.all.*
 import cats.implicits.*
+
 import utils.ValidationUtils.validateToNec
+import utils.DerivationConfiguration.given
 
 type ExamValidation[A] = ValidatedNec[ExamFormError, A]
 
@@ -25,10 +27,10 @@ object ExamForm:
   def validateName(name: String): ExamValidation[String] =
     val trimmedName = name.trim
 
-    (validateToNec(trimmedName, InvalidNameError("Name cannot be empty"))(!_.isEmpty) combine
+    (validateToNec(trimmedName, InvalidNameError("Name cannot be empty"))(_.nonEmpty) combine
       validateToNec(
         trimmedName,
-        InvalidDescriptionError("Name must be <= 100 characters")
+        InvalidNameError("Name must be <= 100 characters")
       )(_.length <= 100)).map(_ => trimmedName)
 
   def validateDescription(description: Option[String]): ExamValidation[Option[String]] =

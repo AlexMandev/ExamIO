@@ -21,7 +21,7 @@ object ExamIO extends IOApp.Simple:
     tokenSignatureService = TokenSignatureService(config.jwtConfig)
     authenticationService = AuthenticationService(tokenSignatureService)
 
-    userModule <- UserModule(dbModule.dbTransactor, tokenSignatureService)
+    userModule <- UserModule(dbModule.dbTransactor, tokenSignatureService, authenticationService)
     examModule <- ExamModule(dbModule.dbTransactor, authenticationService)
 
     apiEndpoints = userModule.endpoints ++ examModule.endpoints

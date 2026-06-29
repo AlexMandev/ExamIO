@@ -8,7 +8,6 @@ import infrastructure.db.DBDoobie.DBTransactor
 case class ExamModule(
   examRepository: ExamRepository,
   examService: ExamService,
-  authenticationService: AuthenticationService,
   endpoints: List[ServerEndpoint[Any, IO]]
 )
 
@@ -18,4 +17,4 @@ object ExamModule:
     val examService = ExamService(examRepository)
     val examController = ExamController(examService, authenticationService)
 
-    Resource.pure(ExamModule(examRepository, examService, authenticationService, examController.endpoints))
+    Resource.pure(ExamModule(examRepository, examService, examController.endpoints))

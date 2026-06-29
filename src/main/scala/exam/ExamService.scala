@@ -9,6 +9,8 @@ import sttp.tapir.Schema
 import sttp.tapir.integ.cats.codec.schemaForNec
 import cats.data.EitherT
 
+import utils.DerivationConfiguration.given
+
 class ExamService(examRepository: ExamRepository):
   def createExam(examForm: ExamForm, teacherId: TeacherId): IO[Either[ExamCreationError, Exam]] =
     ExamForm
@@ -22,7 +24,7 @@ class ExamService(examRepository: ExamRepository):
       exam <- EitherT(loadExam(examId))
       _ <- checkPermissions(exam, teacherId)
       _ <- canBeOpened(exam)
-      _ <- EitherT(examRepository.openExamById(exam.id).map(_.asRight))
+      _ <- EitherT.liftF(examRepository.openExamById(exam.id))
     yield ()).value
 
   def closeExam(examId: ExamId, teacherId: TeacherId): IO[Either[ExamError, Unit]] =
@@ -30,7 +32,7 @@ class ExamService(examRepository: ExamRepository):
       exam <- EitherT(loadExam(examId))
       _ <- checkPermissions(exam, teacherId)
       _ <- canBeClosed(exam)
-      _ <- EitherT(examRepository.closeExamById(exam.id).map(_.asRight))
+      _ <- EitherT.liftF(examRepository.closeExamById(exam.id))
     yield ()).value
 
   private def createNewExam(form: ExamForm, teacherId: TeacherId) = for
@@ -43,11 +45,7 @@ class ExamService(examRepository: ExamRepository):
   private def loadExam(examId: ExamId): IO[Either[ExamError, Exam]] =
     examRepository
       .getExamById(examId)
-      .map(maybeExam =>
-        maybeExam match
-          case None => ExamDoesNotExist(examId).asLeft
-          case Some(exam) => exam.asRight
-      )
+      .map(_.toRight(ExamDoesNotExist(examId)))
 
   private def checkPermissions(exam: Exam, teacherId: TeacherId): EitherT[IO, ExamError, Exam] =
     EitherT.fromEither(
