@@ -19,6 +19,7 @@ libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-effect" % "3.7.0",
 
   "org.tpolecat" %% "doobie-postgres" % doobieVersion,
+  "org.tpolecat" %% "doobie-postgres-circe" % doobieVersion,
   "org.tpolecat" %% "doobie-specs2" % doobieVersion,
   "org.tpolecat" %% "doobie-hikari" % doobieVersion,
 
