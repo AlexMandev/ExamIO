@@ -19,7 +19,7 @@ class ExamRepository(dbTransactor: DBTransactor):
         RETURNING *
     """.query[Exam].unique.transact(dbTransactor).map(_.asRight)
 
-  def getExamsBy(teacherId: UUID): IO[List[Exam]] =
+  def getExamsBy(teacherId: TeacherId): IO[List[Exam]] =
     sql"""
         SELECT * FROM exams WHERE teacher_id = ${teacherId}
       """
@@ -27,7 +27,7 @@ class ExamRepository(dbTransactor: DBTransactor):
       .to[List]
       .transact(dbTransactor)
 
-  def getExamById(examId: UUID): IO[Option[Exam]] =
+  def getExamById(examId: ExamId): IO[Option[Exam]] =
     sql"""
         SELECT * FROM exams WHERE id = ${examId}
       """
@@ -35,7 +35,7 @@ class ExamRepository(dbTransactor: DBTransactor):
       .option
       .transact(dbTransactor)
 
-  def openExamById(examId: UUID): IO[Unit] =
+  def openExamById(examId: ExamId): IO[Unit] =
     sql"""
         UPDATE exams
         SET status = 'open'
@@ -44,7 +44,7 @@ class ExamRepository(dbTransactor: DBTransactor):
       .transact(dbTransactor)
       .void
 
-  def closeExamById(examId: UUID): IO[Unit] =
+  def closeExamById(examId: ExamId): IO[Unit] =
     sql"""
         UPDATE exams
         SET status = 'closed'

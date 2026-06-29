@@ -30,14 +30,14 @@ object ExamEndpoints:
   // (tapir types are NOT cooperating it seems)
   val openExamEndpoint = baseExamEndpoint
     .secure(UserRole.TEACHER)
-    .in(path[UUID]("examId"))
+    .in(path[ExamId]("examId"))
     .in("open")
     .errorOutVariant(oneOfVariant(statusCode(NotFound).and(jsonBody[ExamError])))
     .post
 
   val closeExamEndpoint = baseExamEndpoint
     .secure(UserRole.TEACHER)
-    .in(path[UUID]("examId"))
+    .in(path[ExamId]("examId"))
     .in("close")
     .errorOutVariant(oneOfVariant(statusCode(NotFound).and(jsonBody[ExamError])))
     .post

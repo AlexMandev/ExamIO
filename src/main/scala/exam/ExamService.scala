@@ -9,16 +9,17 @@ import sttp.tapir.Schema
 import sttp.tapir.integ.cats.codec.schemaForNec
 import cats.data.EitherT
 import infrastructure.config.AppConfig.loadConfig
+import cats.effect.kernel.Temporal
 
 class ExamService(examRepository: ExamRepository):
-  def createExam(examForm: ExamForm, teacherId: UUID): IO[Either[ExamCreationError, Exam]] =
+  def createExam(examForm: ExamForm, teacherId: TeacherId): IO[Either[ExamCreationError, Exam]] =
     ExamForm
       .validate(examForm)
       .fold(errors => IO.pure(ExamFormValidationError(errors).asLeft), form => createNewExam(form, teacherId))
 
-  def getExamsBy(teacherId: UUID): IO[List[Exam]] = examRepository.getExamsBy(teacherId)
+  def getExamsBy(teacherId: TeacherId): IO[List[Exam]] = examRepository.getExamsBy(teacherId)
 
-  def openExam(examId: UUID, teacherId: UUID): IO[Either[ExamError, Unit]] =
+  def openExam(examId: ExamId, teacherId: TeacherId): IO[Either[ExamError, Unit]] =
     (for
       exam <- EitherT(loadExam(examId))
       _ <- checkPermissions(exam, teacherId)
@@ -26,7 +27,7 @@ class ExamService(examRepository: ExamRepository):
       _ <- EitherT(examRepository.openExamById(exam.id).map(_.asRight))
     yield ()).value
 
-  def closeExam(examId: UUID, teacherId: UUID): IO[Either[ExamError, Unit]] =
+  def closeExam(examId: ExamId, teacherId: TeacherId): IO[Either[ExamError, Unit]] =
     (for
       exam <- EitherT(loadExam(examId))
       _ <- checkPermissions(exam, teacherId)
@@ -34,14 +35,14 @@ class ExamService(examRepository: ExamRepository):
       _ <- EitherT(examRepository.closeExamById(exam.id).map(_.asRight))
     yield ()).value
 
-  private def createNewExam(form: ExamForm, teacherId: UUID) = for
+  private def createNewExam(form: ExamForm, teacherId: TeacherId) = for
     id <- IO.pure(UUID.randomUUID())
     createdExam <- examRepository.createExam(
-      NewExam(id, form.name, form.description, form.timeLimitMinutes, teacherId)
+      NewExam(ExamId(id), form.name, form.description, form.timeLimitMinutes, teacherId)
     )
   yield createdExam
 
-  private def loadExam(examId: UUID): IO[Either[ExamError, Exam]] =
+  private def loadExam(examId: ExamId): IO[Either[ExamError, Exam]] =
     examRepository
       .getExamById(examId)
       .map(maybeExam =>
@@ -50,7 +51,7 @@ class ExamService(examRepository: ExamRepository):
           case Some(exam) => exam.asRight
       )
 
-  private def checkPermissions(exam: Exam, teacherId: UUID): EitherT[IO, ExamError, Exam] =
+  private def checkPermissions(exam: Exam, teacherId: TeacherId): EitherT[IO, ExamError, Exam] =
     EitherT.fromEither(
       if exam.teacherId == teacherId
       then exam.asRight
@@ -73,14 +74,14 @@ class ExamService(examRepository: ExamRepository):
 
 sealed trait ExamError derives Codec, Schema
 
-case class ExamDoesNotExist(examId: UUID) extends ExamError
+case class ExamDoesNotExist(examId: ExamId) extends ExamError
 
 sealed trait ExamCreationError extends ExamError derives Codec, Schema
 case class ExamFormValidationError(errors: NonEmptyChain[ExamFormError]) extends ExamCreationError
 
 sealed trait ExamStatusError extends ExamError derives Codec, Schema
-case class ExamCannotBeOpened(examId: UUID, examStatus: ExamStatus) extends ExamStatusError
-case class ExamCannotBeClosed(examId: UUID, examStatus: ExamStatus) extends ExamStatusError
+case class ExamCannotBeOpened(examId: ExamId, examStatus: ExamStatus) extends ExamStatusError
+case class ExamCannotBeClosed(examId: ExamId, examStatus: ExamStatus) extends ExamStatusError
 
 sealed trait ExamPermissionError extends ExamError derives Codec, Schema
-case class NotAnOwner(teacherId: UUID, examId: UUID) extends ExamPermissionError
+case class NotAnOwner(teacherId: TeacherId, examId: ExamId) extends ExamPermissionError
