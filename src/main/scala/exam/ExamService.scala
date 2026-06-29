@@ -8,8 +8,6 @@ import io.circe.Codec
 import sttp.tapir.Schema
 import sttp.tapir.integ.cats.codec.schemaForNec
 import cats.data.EitherT
-import infrastructure.config.AppConfig.loadConfig
-import cats.effect.kernel.Temporal
 
 class ExamService(examRepository: ExamRepository):
   def createExam(examForm: ExamForm, teacherId: TeacherId): IO[Either[ExamCreationError, Exam]] =
