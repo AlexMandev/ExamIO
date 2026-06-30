@@ -4,12 +4,10 @@ import sttp.tapir.*
 import sttp.tapir.generic.auto.*
 import sttp.tapir.json.circe.jsonBody
 import sttp.tapir.integ.cats.codec.*
-import sttp.model.StatusCode.{BadRequest, Conflict, Created, Forbidden, NotFound, Unauthorized}
+import sttp.model.StatusCode.{BadRequest, Conflict, Created, Forbidden, NotFound}
 import infrastructure.ExamIOEndpoints.{apiBaseEndpoint, secure}
-import infrastructure.auth.{AuthenticationError, ForbiddenResource, UnauthorizedAccess, userRoleKey}
 import user.UserRole.TEACHER
 import exam.{ExamDoesNotExist, ExamId, ExamNotDraft, NotAnOwner}
-import question.QuestionEndpoints.questionsBaseEndpoint
 import utils.jsonBodyTypedError
 
 object QuestionEndpoints:

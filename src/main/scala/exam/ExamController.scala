@@ -2,7 +2,6 @@ package exam
 
 import infrastructure.auth.AuthenticationService
 
-import cats.effect.IO
 import cats.syntax.all.*
 
 class ExamController(examService: ExamService, authenticationService: AuthenticationService):

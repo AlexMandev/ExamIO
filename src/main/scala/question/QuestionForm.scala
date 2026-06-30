@@ -1,6 +1,6 @@
 package question
 
-import cats.data.{NonEmptyChain, ValidatedNec}
+import cats.data.ValidatedNec
 import cats.syntax.all.*
 import io.circe.Codec
 import sttp.tapir.Schema
