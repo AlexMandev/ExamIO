@@ -7,7 +7,7 @@ import sttp.tapir.integ.cats.codec.*
 import sttp.model.StatusCode.{BadRequest, Conflict, Created, Forbidden, NotFound}
 import infrastructure.ExamIOEndpoints.{apiBaseEndpoint, secure}
 import user.UserRole.TEACHER
-import exam.{ExamDoesNotExist, ExamId, ExamNotDraft, NotAnOwner}
+import exam.{ExamDoesNotExist, ExamError, ExamId, ExamNotDraft, NotAnOwner}
 import utils.jsonBodyTypedError
 
 object QuestionEndpoints:
@@ -15,7 +15,16 @@ object QuestionEndpoints:
     .in("exams" / path[ExamId]("examId") / "questions")
     .tag("Questions")
 
-  val getExamQuestionsEndpoint = questionsBaseEndpoint.out(jsonBody[List[Question]])
+  val getExamQuestionsEndpoint = questionsBaseEndpoint
+    .secure(
+      TEACHER,
+      oneOf[ExamError](
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
+        oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotAnOwner]))
+      )
+    )
+    .out(jsonBody[List[Question]])
+    .get
 
   val addQuestionEndpoint = questionsBaseEndpoint
     .secure(

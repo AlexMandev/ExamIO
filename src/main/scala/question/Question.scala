@@ -1,18 +1,16 @@
 package question
 
 import java.util.UUID
-
 import doobie.Meta
 import doobie.postgres.implicits.*
-
-import io.circe.Codec
+import io.circe.{Codec, Json}
 import io.circe.derivation.ConfiguredEnumCodec
-
 import sttp.tapir
+import io.circe.syntax.*
 import sttp.tapir.{CodecFormat, Schema}
-
 import exam.ExamId
 import utils.DerivationConfiguration.given
+import utils.DoobieUtils.given
 
 opaque type QuestionId = UUID
 
@@ -34,6 +32,10 @@ object QuestionType:
   given Meta[QuestionType] = Meta[String].imap(QuestionType.valueOf)(_.toString)
 
 sealed trait QuestionData derives Codec, Schema
+
+object QuestionData:
+  given Meta[QuestionData] =
+    Meta[Json].tiemap(_.as[QuestionData].toOption.toRight("Invalid db parsing of question data"))(_.asJson)
 
 case class MultipleChoiceData(
   options: List[String],

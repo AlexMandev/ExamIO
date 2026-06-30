@@ -2,13 +2,15 @@ package question
 
 import cats.data.{EitherT, NonEmptyChain}
 import cats.effect.IO
+import cats.effect.implicits.{genSpawnOps, genTemporalOps}
+import cats.effect.kernel.implicits.monadCancelOps
 import cats.syntax.all.*
 import io.circe.Codec
 import sttp.tapir.Schema
 import sttp.tapir.integ.cats.codec.schemaForNec
 
 import java.util.UUID
-import exam.{Exam, ExamDoesNotExist, ExamId, ExamNotDraft, ExamService, ExamStatus, NotAnOwner, TeacherId}
+import exam.{Exam, ExamDoesNotExist, ExamError, ExamId, ExamNotDraft, ExamService, ExamStatus, NotAnOwner, TeacherId}
 import utils.DerivationConfiguration.given
 
 sealed trait QuestionError derives Codec, Schema
@@ -20,6 +22,14 @@ case class QuestionFormValidationError(errors: NonEmptyChain[QuestionFormError])
 type AddQuestionError = ExamDoesNotExist | NotAnOwner | ExamNotDraft | QuestionFormValidationError
 
 class QuestionService(questionRepository: QuestionRepository, examService: ExamService):
+  def getQuestionsForExam(userId: UUID, examId: ExamId): IO[Either[ExamError, List[Question]]] =
+    val result: EitherT[IO, ExamError, List[Question]] = for
+      exam <- EitherT(examService.findById(examId))
+      _ <- examService.checkPermissions(exam, TeacherId(userId))
+      questions <- EitherT.liftF(questionRepository.getForExam(examId))
+    yield questions
+
+    result.value
 
   def addQuestion(
     form: QuestionForm,

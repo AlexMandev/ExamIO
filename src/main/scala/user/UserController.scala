@@ -1,11 +1,8 @@
 package user
 
-import cats.effect.IO
 import infrastructure.auth.AuthenticationService
 
 class UserController(userService: UserService, authService: AuthenticationService):
-  import authService.*
-
   def registerUser =
     UserEndpoints.registerUserEndpoint.serverLogic: form =>
       userService.registerUser(form)
