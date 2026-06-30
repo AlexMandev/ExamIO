@@ -31,21 +31,23 @@ class ExamService(examRepository: ExamRepository):
       else NotAnOwner(teacherId, exam.id).asLeft
     )
 
-  def openExam(examId: ExamId, teacherId: TeacherId): IO[Either[ExamError, Unit]] =
-    (for
+  def openExam(examId: ExamId, teacherId: TeacherId): IO[Either[OpenExamError, Unit]] =
+    val result: EitherT[IO, OpenExamError, Unit] = for
       exam <- EitherT(findById(examId))
       _ <- checkPermissions(exam, teacherId)
       _ <- canBeOpened(exam)
       _ <- EitherT.liftF(examRepository.openExamById(exam.id))
-    yield ()).value
+    yield ()
+    result.value
 
-  def closeExam(examId: ExamId, teacherId: TeacherId): IO[Either[ExamError, Unit]] =
-    (for
+  def closeExam(examId: ExamId, teacherId: TeacherId): IO[Either[CloseExamError, Unit]] =
+    val result: EitherT[IO, CloseExamError, Unit] = for
       exam <- EitherT(findById(examId))
       _ <- checkPermissions(exam, teacherId)
       _ <- canBeClosed(exam)
       _ <- EitherT.liftF(examRepository.closeExamById(exam.id))
-    yield ()).value
+    yield ()
+    result.value
 
   private def createNewExam(form: ExamForm, teacherId: TeacherId) = for
     id <- IO.pure(UUID.randomUUID())
@@ -54,14 +56,14 @@ class ExamService(examRepository: ExamRepository):
     )
   yield createdExam
 
-  private def canBeOpened(exam: Exam): EitherT[IO, ExamError, Exam] =
+  private def canBeOpened(exam: Exam): EitherT[IO, ExamCannotBeOpened, Exam] =
     EitherT.fromEither(
       if exam.status == ExamStatus.DRAFT
       then exam.asRight
       else ExamCannotBeOpened(exam.id, exam.status).asLeft
     )
 
-  private def canBeClosed(exam: Exam): EitherT[IO, ExamError, Exam] =
+  private def canBeClosed(exam: Exam): EitherT[IO, ExamCannotBeClosed, Exam] =
     EitherT.fromEither(
       if exam.status == ExamStatus.OPEN
       then exam.asRight
@@ -77,8 +79,15 @@ case class ExamFormValidationError(errors: NonEmptyChain[ExamFormError]) extends
 
 sealed trait ExamStatusError extends ExamError derives Codec, Schema
 case class ExamCannotBeOpened(examId: ExamId, examStatus: ExamStatus) extends ExamStatusError
+    derives Codec.AsObject,
+      Schema
 case class ExamCannotBeClosed(examId: ExamId, examStatus: ExamStatus) extends ExamStatusError
+    derives Codec.AsObject,
+      Schema
 case class ExamNotDraft(examId: ExamId, currentStatus: ExamStatus) extends ExamError derives Codec.AsObject, Schema
 
 sealed trait ExamPermissionError extends ExamError derives Codec, Schema
 case class NotAnOwner(teacherId: TeacherId, examId: ExamId) extends ExamPermissionError derives Codec.AsObject, Schema
+
+type OpenExamError = ExamDoesNotExist | NotAnOwner | ExamCannotBeOpened
+type CloseExamError = ExamDoesNotExist | NotAnOwner | ExamCannotBeClosed
