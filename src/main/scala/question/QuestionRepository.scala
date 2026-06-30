@@ -34,13 +34,12 @@ class QuestionRepository(dbTransactor: DBTransactor):
 
   def deleteQuestion(questionId: QuestionId, examId: ExamId): IO[Boolean] =
     (for
-      posOpt <- sql"SELECT position FROM questions WHERE id = $questionId AND exam_id = $examId"
+      maybePos <- sql"SELECT position FROM questions WHERE id = $questionId AND exam_id = $examId"
         .query[Int]
         .option
-      found <- posOpt match
-        case None => false.pure[ConnectionIO]
-        case Some(pos) =>
-          sql"DELETE FROM questions WHERE id = $questionId".update.run >>
-            sql"UPDATE questions SET position = position - 1 WHERE exam_id = $examId AND position > $pos".update.run
-              .as(true)
+      found <- maybePos.fold(false.pure[ConnectionIO])(pos =>
+        sql"DELETE FROM questions WHERE id = $questionId".update.run >>
+          sql"UPDATE questions SET position = position - 1 WHERE exam_id = $examId AND position > $pos".update.run
+            .as(true)
+      )
     yield found).transact(dbTransactor)

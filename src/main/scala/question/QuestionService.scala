@@ -3,7 +3,6 @@ package question
 import cats.data.{EitherT, NonEmptyChain}
 import cats.effect.IO
 import cats.effect.implicits.{genSpawnOps, genTemporalOps}
-import cats.effect.kernel.implicits.monadCancelOps
 import cats.syntax.all.*
 import io.circe.Codec
 import sttp.tapir.Schema
@@ -64,7 +63,7 @@ class QuestionService(questionRepository: QuestionRepository, examService: ExamS
     yield ()
     result.value
 
-  private def checkDraft[E >: ExamNotDraft](exam: Exam): EitherT[IO, E, Unit] =
+  private def checkDraft(exam: Exam): EitherT[IO, ExamNotDraft, Unit] =
     EitherT.fromEither(
       if exam.status == ExamStatus.DRAFT then Right(())
       else Left(ExamNotDraft(exam.id, exam.status))
