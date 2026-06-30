@@ -19,7 +19,10 @@ case class QuestionFormValidationError(errors: NonEmptyChain[QuestionFormError])
     derives Codec.AsObject,
       Schema
 
+case class QuestionNotFound(questionId: QuestionId) extends QuestionError derives Codec.AsObject, Schema
+
 type AddQuestionError = ExamDoesNotExist | NotAnOwner | ExamNotDraft | QuestionFormValidationError
+type DeleteQuestionError = ExamDoesNotExist | NotAnOwner | ExamNotDraft | QuestionNotFound
 
 class QuestionService(questionRepository: QuestionRepository, examService: ExamService):
   def getQuestionsForExam(userId: UUID, examId: ExamId): IO[Either[ExamError, List[Question]]] =
@@ -47,7 +50,21 @@ class QuestionService(questionRepository: QuestionRepository, examService: ExamS
     yield q
     result.value
 
-  private def checkDraft(exam: Exam): EitherT[IO, AddQuestionError, Unit] =
+  def deleteQuestion(
+    questionId: QuestionId,
+    examId: ExamId,
+    teacherId: TeacherId
+  ): IO[Either[DeleteQuestionError, Unit]] =
+    val result: EitherT[IO, DeleteQuestionError, Unit] = for
+      exam <- EitherT(examService.findById(examId))
+      _ <- examService.checkPermissions(exam, teacherId)
+      _ <- checkDraft(exam)
+      found <- EitherT.liftF(questionRepository.deleteQuestion(questionId, examId))
+      _ <- EitherT.fromEither(if found then Right(()) else Left(QuestionNotFound(questionId)))
+    yield ()
+    result.value
+
+  private def checkDraft[E >: ExamNotDraft](exam: Exam): EitherT[IO, E, Unit] =
     EitherT.fromEither(
       if exam.status == ExamStatus.DRAFT then Right(())
       else Left(ExamNotDraft(exam.id, exam.status))

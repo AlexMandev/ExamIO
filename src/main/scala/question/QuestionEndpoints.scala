@@ -26,6 +26,19 @@ object QuestionEndpoints:
     .out(jsonBody[List[Question]])
     .get
 
+  val deleteQuestionEndpoint = questionsBaseEndpoint
+    .in(path[QuestionId]("questionId"))
+    .secure(
+      TEACHER,
+      oneOf[DeleteQuestionError](
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
+        oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotAnOwner])),
+        oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[ExamNotDraft])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound]))
+      )
+    )
+    .delete
+
   val addQuestionEndpoint = questionsBaseEndpoint
     .secure(
       TEACHER,
