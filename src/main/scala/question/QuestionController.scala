@@ -9,8 +9,7 @@ class QuestionController(questionService: QuestionService, authenticationService
   import authenticationService.*
 
   def addQuestion = QuestionEndpoints.addQuestionEndpoint.authenticate.serverLogic { user => (examId, form) =>
-//    questionService.addQuestion(form, examId, TeacherId(user.id))
-    ???
+    questionService.addQuestion(form, examId, TeacherId(user.id))
   }
 
-  val endpoints: List[ServerEndpoint[Any, IO]] = List()
+  val endpoints: List[ServerEndpoint[Any, IO]] = List(addQuestion)

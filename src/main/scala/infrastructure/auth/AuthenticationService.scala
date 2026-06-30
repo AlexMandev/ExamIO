@@ -11,10 +11,10 @@ class AuthenticationService(tokenSignatureService: TokenSignatureService):
   private def retrieveRole(endpoint: Endpoint[?, ?, ?, ?, ?]): Option[UserRole] =
     endpoint.attribute(userRoleKey)
 
-  extension [I, E >: AuthenticationError, O, R](securedEndpoint: Endpoint[String, I, E, O, R])
+  extension [I, E >: UnauthorizedAccess | ForbiddenResource, O, R](securedEndpoint: Endpoint[String, I, E, O, R])
     def authenticate: PartialServerEndpoint[String, AuthenticatedUser, I, E, O, R, IO] =
       securedEndpoint.serverSecurityLogic: token =>
-        (for
+        val result: EitherT[IO, E, AuthenticatedUser] = for
           authenticatedUser <- EitherT(
             tokenSignatureService
               .validate(token)
@@ -25,4 +25,5 @@ class AuthenticationService(tokenSignatureService: TokenSignatureService):
             then ().asRight
             else ForbiddenResource("Insufficient permissions").asLeft
           )
-        yield authenticatedUser).value
+        yield authenticatedUser
+        result.value
