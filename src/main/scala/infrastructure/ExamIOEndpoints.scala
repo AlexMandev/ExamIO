@@ -6,6 +6,8 @@ import sttp.tapir.*
 import sttp.tapir.json.circe.jsonBody
 import user.UserRole
 
+import utils.jsonBodyTypedError
+
 object ExamIOEndpoints:
   val apiBaseEndpoint: PublicEndpoint[Unit, Unit, Unit, Any] = endpoint.in("api").in("v1")
 
@@ -21,8 +23,8 @@ object ExamIOEndpoints:
         .securityIn(auth.bearer[String]())
         .errorOut(
           oneOf[AuthenticationError](
-            oneOfVariant(statusCode(Unauthorized).and(jsonBody[AuthenticationError])),
-            oneOfVariant(statusCode(Forbidden).and(jsonBody[AuthenticationError]))
+            oneOfVariant(statusCode(Unauthorized).and(jsonBodyTypedError[UnauthorizedAccess])),
+            oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[ForbiddenResource]))
           )
         )
       maybeRole

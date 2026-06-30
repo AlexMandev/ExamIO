@@ -5,6 +5,7 @@ import doobie.*
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import doobie.postgres.circe.jsonb.implicits.*
+import io.circe.syntax.*
 import infrastructure.db.DBDoobie.DBTransactor
 import exam.ExamId
 
@@ -15,9 +16,9 @@ class QuestionRepository(dbTransactor: DBTransactor):
       .unique
       .transact(dbTransactor)
 
-  def addQuestion(question: Question): IO[Question] =
+  def addQuestion(q: Question): IO[Question] =
     sql"""INSERT INTO questions (id, exam_id, question_text, question_type, points, position, data)
-          VALUES (${question.id}, ${question.examId}, ${question.questionText},
-                  ${question.questionType}, ${question.points}, ${question.position}, ${question.data})""".update.run
+          VALUES (${q.id}, ${q.examId}, ${q.questionText},
+                  ${q.questionType}, ${q.points}, ${q.position}, ${q.data.asJson})""".update.run
       .transact(dbTransactor)
-      .as(question)
+      .as(q)
