@@ -28,7 +28,7 @@ class QuestionService(questionRepository: QuestionRepository, examService: ExamS
     val result: EitherT[IO, ExamError, List[Question]] = for
       exam <- EitherT(examService.findById(examId))
       _ <- examService.checkPermissions(exam, TeacherId(userId))
-      questions <- EitherT.liftF(questionRepository.getForExam(examId))
+      questions <- EitherT.liftF(questionRepository.getQuestionsByExamId(examId))
     yield questions
 
     result.value

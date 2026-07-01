@@ -26,20 +26,40 @@ class QuestionRepository(dbTransactor: DBTransactor):
       .transact(dbTransactor)
       .as(q)
 
-  def getForExam(examId: ExamId): IO[List[Question]] =
+  def getQuestionsByExamId(examId: ExamId): IO[List[Question]] =
     sql"""
          SELECT * FROM questions
          WHERE exam_id = ${examId}
          """.query[Question].to[List].transact(dbTransactor)
 
   def deleteQuestion(questionId: QuestionId, examId: ExamId): IO[Boolean] =
-    (for
-      maybePos <- sql"SELECT position FROM questions WHERE id = $questionId AND exam_id = $examId"
-        .query[Int]
-        .option
-      found <- maybePos.fold(false.pure[ConnectionIO])(pos =>
-        sql"DELETE FROM questions WHERE id = $questionId".update.run >>
-          sql"UPDATE questions SET position = position - 1 WHERE exam_id = $examId AND position > $pos".update.run
-            .as(true)
-      )
-    yield found).transact(dbTransactor)
+    val deleteQuery: ConnectionIO[Boolean] =
+      for
+        maybePos <- getQuestionPosition(examId, questionId)
+        result <- maybePos match
+          case None => false.pure[ConnectionIO]
+          case Some(pos) =>
+            deleteQuestionById(questionId) >>
+              decrementQuestionPositions(examId, pos) >> true.pure[ConnectionIO]
+      yield result
+
+    deleteQuery.transact(dbTransactor)
+
+  private def getQuestionPosition(examId: ExamId, questionId: QuestionId): ConnectionIO[Option[Int]] =
+    sql"""
+        SELECT position FROM questions
+        WHERE id = $questionId AND exam_id = $examId
+      """
+      .query[Int]
+      .option
+
+  private def deleteQuestionById(questionId: QuestionId): ConnectionIO[Int] =
+    sql"DELETE FROM questions WHERE id = $questionId".update.run
+
+  private def decrementQuestionPositions(examId: ExamId, position: Int): ConnectionIO[Int] =
+    sql"""
+        UPDATE questions SET position = position - 1
+        WHERE exam_id = $examId AND position > $position"
+      """
+      .update
+      .run
