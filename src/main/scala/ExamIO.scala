@@ -10,6 +10,7 @@ import sttp.tapir.server.http4s.Http4sServerInterpreter
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
 import user.UserModule
 import exam.ExamModule
+import question.QuestionModule
 
 object ExamIO extends IOApp.Simple:
   val app: Resource[IO, Server] = for
@@ -23,8 +24,9 @@ object ExamIO extends IOApp.Simple:
 
     userModule <- UserModule(dbModule.dbTransactor, tokenSignatureService, authenticationService)
     examModule <- ExamModule(dbModule.dbTransactor, authenticationService)
+    questionModule <- QuestionModule(dbModule.dbTransactor, examModule.examService, authenticationService)
 
-    apiEndpoints = userModule.endpoints ++ examModule.endpoints
+    apiEndpoints = userModule.endpoints ++ examModule.endpoints ++ questionModule.endpoints
 
     docs = SwaggerInterpreter().fromServerEndpoints[IO](apiEndpoints, "ExamIO", "1.0.0")
     examIOHttpApp = Http4sServerInterpreter[IO]().toRoutes(apiEndpoints ::: docs).orNotFound

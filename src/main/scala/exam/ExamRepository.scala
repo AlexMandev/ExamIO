@@ -8,8 +8,6 @@ import cats.syntax.all.*
 import doobie.postgres.implicits.*
 
 import infrastructure.db.DBDoobie.DBTransactor
-import cats.data.NonEmptyChain
-import java.util.UUID
 
 class ExamRepository(dbTransactor: DBTransactor):
   def createExam(exam: NewExam): IO[Either[ExamCreationError, Exam]] =
