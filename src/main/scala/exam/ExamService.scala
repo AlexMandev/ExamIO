@@ -11,6 +11,8 @@ import sttp.tapir.integ.cats.codec.schemaForNec
 import cats.data.EitherT
 import utils.DerivationConfiguration.given
 
+import user.{TeacherId, StudentId}
+
 class ExamService(examRepository: ExamRepository):
   def createExam(examForm: ExamForm, teacherId: TeacherId): IO[Either[ExamCreationError, Exam]] =
     ExamForm
@@ -88,6 +90,7 @@ case class ExamNotDraft(examId: ExamId, currentStatus: ExamStatus) extends ExamE
 
 sealed trait ExamPermissionError extends ExamError derives Codec, Schema
 case class NotAnOwner(teacherId: TeacherId, examId: ExamId) extends ExamPermissionError derives Codec.AsObject, Schema
+case class NotAStudent(studentId: StudentId) extends ExamPermissionError derives Codec.AsObject, Schema
 
 type OpenExamError = ExamDoesNotExist | NotAnOwner | ExamCannotBeOpened
 type CloseExamError = ExamDoesNotExist | NotAnOwner | ExamCannotBeClosed

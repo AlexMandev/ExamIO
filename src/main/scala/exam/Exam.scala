@@ -14,6 +14,8 @@ import sttp.tapir.{CodecFormat, Schema}
 
 import utils.DerivationConfiguration.given
 
+import user.TeacherId
+
 enum ExamStatus derives ConfiguredEnumCodec, Schema:
   case DRAFT, OPEN, CLOSED, GRADED
 
@@ -32,19 +34,6 @@ object ExamId:
 
   given tapir.Codec[String, ExamId, CodecFormat.TextPlain] =
     tapir.Codec.uuid.map(ExamId.apply)(_.value)
-
-opaque type TeacherId = UUID
-
-object TeacherId:
-  def apply(id: UUID): TeacherId = id
-  extension (teacherId: TeacherId) def value: UUID = teacherId
-
-  given Codec[TeacherId] = Codec.implied[UUID]
-  given Schema[TeacherId] = Schema.string[UUID].format("uuid")
-  given Meta[TeacherId] = Meta[UUID].imap(TeacherId.apply)(_.value)
-
-  given tapir.Codec[String, TeacherId, CodecFormat.TextPlain] =
-    tapir.Codec.uuid.map(TeacherId.apply)(_.value)
 
 case class Exam(
   id: ExamId,

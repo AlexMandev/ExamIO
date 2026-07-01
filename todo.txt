@@ -1,0 +1,6 @@
+*********************************
+          QUESTIONS
+*********************************
+
+[] refactor getQuestionsForExam to work for both students and teachers
+   but apply the correct validation depending on the role

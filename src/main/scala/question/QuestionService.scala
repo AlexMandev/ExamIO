@@ -9,7 +9,8 @@ import sttp.tapir.Schema
 import sttp.tapir.integ.cats.codec.schemaForNec
 
 import java.util.UUID
-import exam.{Exam, ExamDoesNotExist, ExamError, ExamId, ExamNotDraft, ExamService, ExamStatus, NotAnOwner, TeacherId}
+import exam.{Exam, ExamDoesNotExist, ExamError, ExamId, ExamNotDraft, ExamService, ExamStatus, NotAnOwner}
+import user.TeacherId
 import utils.DerivationConfiguration.given
 
 sealed trait QuestionError derives Codec, Schema

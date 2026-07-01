@@ -3,7 +3,7 @@ package question
 import cats.effect.IO
 import sttp.tapir.server.ServerEndpoint
 import infrastructure.auth.AuthenticationService
-import exam.TeacherId
+import user.TeacherId
 
 class QuestionController(questionService: QuestionService, authenticationService: AuthenticationService):
   import authenticationService.*
