@@ -6,6 +6,6 @@ CREATE TABLE IF NOT EXISTS submissions (
   finished_at TIMESTAMPTZ,
   status VARCHAR(20) NOT NULL DEFAULT 'InProgress'
     CHECK ((status = 'InProgress' AND finished_at IS NULL)
-      OR (status in ('Finished', 'Graded') AND finished_at IS NOT NULL),
+      OR (status in ('Finished', 'Graded') AND finished_at IS NOT NULL)),
   UNIQUE (exam_id, student_id)
 )
