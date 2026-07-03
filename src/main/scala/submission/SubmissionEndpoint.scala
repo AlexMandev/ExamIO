@@ -13,30 +13,31 @@ import user.UserRole
 import utils.jsonBodyTypedError
 
 object SubmissionEndpoint:
-  private val submissionsBaseEndpoint = apiBaseEndpoint.in("exams" / path[ExamId]("examId") / "submissions")
+  private val submissionBaseEndpoint = apiBaseEndpoint.in("exams" / path[ExamId]("examId") / "submissions")
 
-  val createSubmissionEndpoint = submissionsBaseEndpoint
+  val submissionEndpoint = submissionBaseEndpoint.in(path[SubmissionId]("submissionId") / "submit")
+
+  val createSubmissionEndpoint = submissionBaseEndpoint
     .secure(UserRole.STUDENT,
         oneOf[ExamError | SubmissionError](
           oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
           oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotAStudent])),
           oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[ExamCannotBeOpened])),
-          oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[AlreadySubmitted]))
+          oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[SubmissionAlreadyExists]))
         )
       )
     .out(statusCode(Created).and(jsonBody[Submission]))
     .post
 
-  val finishSubmissionEndpoint = submissionsBaseEndpoint
-    .in(path[SubmissionId]("submissionId") / "submit")
+  val finishSubmissionEndpoint = submissionEndpoint
     .secure(UserRole.STUDENT,
         oneOf[ExamError | SubmissionError](
           oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
+          oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),
           oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotAStudent])),
           oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[ExamCannotBeOpened])),
-          oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[AlreadySubmitted])),
           oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[SubmissionNotInProgress]))
         )
       )
-    .out(statusCode(Created))
+    .out(statusCode(Created).and(jsonBody[Submission]))
     .patch

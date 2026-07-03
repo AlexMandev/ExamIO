@@ -20,7 +20,7 @@ opaque type SubmissionId = UUID
 
 object SubmissionId:
   def apply(id: UUID): SubmissionId = id
-  extension (submissionsId: SubmissionId) def value: UUID = submissionsId
+  extension (submissionId: SubmissionId) def value: UUID = submissionId
 
   given Codec[SubmissionId] = Codec.implied[UUID]
   given Schema[SubmissionId] = Schema.string[UUID].format("uuid")
@@ -40,7 +40,7 @@ case class Submission(
   examId: ExamId,
   studentId: StudentId,
   startedAt: Instant,
-  finishedAt: Instant,
+  finishedAt: Option[Instant],
   status: SubmissionStatus,
 ) derives Codec, Schema
 

@@ -13,6 +13,9 @@ class SubmissionController(submissionService: SubmissionService, authenticationS
     user => examId => submissionService.createSubmission(SubmissionForm(examId, StudentId(user.id)))
   }
 
-  // def finishSubmission = ???
+  def finishSubmission = SubmissionEndpoint.finishSubmissionEndpoint.authenticate.serverLogic {
+    user => (examId, submissionId) =>
+      submissionService.finishSubmission(StudentId(user.id), submissionId, examId)
+  }
 
-  val endpoints: List[ServerEndpoint[Any, IO]] = List(createSubmission)
+  val endpoints: List[ServerEndpoint[Any, IO]] = List(createSubmission, finishSubmission)

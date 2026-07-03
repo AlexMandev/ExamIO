@@ -20,7 +20,7 @@ class SubmissionService(submissionRepository: SubmissionRepository, examService:
       for
         id <- EitherT.liftF(UUID.randomUUID().pure[IO])
         exam <- validateExamStatus(submissionForm.examId, ExamStatus.OPEN)
-        _ <- EitherT(checkForAnotherSubmission(submissionForm.examId, submissionForm.studentId))
+        _ <- EitherT(checkForAnotherCreatedSubmission(submissionForm.examId, submissionForm.studentId))
 
         newSubmission = NewSubmission(SubmissionId(id), submissionForm.examId, submissionForm.studentId)
 
@@ -30,28 +30,49 @@ class SubmissionService(submissionRepository: SubmissionRepository, examService:
 
     result.value
 
-  def checkForAnotherSubmission(examId: ExamId, studentId: StudentId): IO[Either[AlreadySubmitted, Unit]] =
+  // 1. exam exists - validateExamStatus
+  // 2. exam is open - validateExamStatus
+  // 3. submission exists - getSubmission
+  // 4. submission has the correct studentId - getSubmission
+  // 5. the submission's status is 'InProgress'
+
+  def finishSubmission(studentId: StudentId, submissionId: SubmissionId, examId: ExamId): IO[Either[ExamError | SubmissionError, Submission]] =
+    val result =
+      for
+        // if an exam gets closed before submission,
+        // no changes get made
+        exam <- validateExamStatus(examId, ExamStatus.OPEN)
+
+        _ <- EitherT(submissionRepository.getSubmissionById(submissionId)
+                       .map(_.toRight(SubmissionDoesNotExist(submissionId))))
+                       .ensureOr(sub => SubmissionNotInProgress(sub.id, sub.status))
+                              (_.studentId == studentId)
+                       .ensureOr(sub => SubmissionNotInProgress(sub.id, sub.status))
+                              (_.examId == examId)
+                       .ensureOr(sub => SubmissionNotInProgress(sub.id, sub.status))
+                              (_.status == SubmissionStatus.InProgress)
+
+        submission <- EitherT(submissionRepository.finishSubmission(submissionId)
+                       .map(_.toRight(SubmissionDoesNotExist(submissionId))))
+
+      yield submission
+
+    result.value
+
+  private def validateExamStatus(examId: ExamId, expectedStatus: ExamStatus): EitherT[IO, ExamError, Exam] =
+    EitherT(examService.findById(examId))
+      .ensureOr(exam => ExamCannotBeOpened(exam.id, exam.status))(_.status == expectedStatus)
+
+  private def checkForAnotherCreatedSubmission(examId: ExamId, studentId: StudentId): IO[Either[SubmissionAlreadyExists, Unit]] =
     for
       maybeSubmission <- submissionRepository.getSubmission(examId, studentId)
       result <- IO(maybeSubmission match
         case None => ().asRight
-        case Some(submission) => AlreadySubmitted(studentId, examId, submission.id).asLeft)
+        case Some(submission) => SubmissionAlreadyExists(studentId, examId, submission.id).asLeft)
     yield result
 
-  // 1. exam exists
-  // 2. exam is open
-  // 3. submission exists
-  // 4. submission has the correct studentId
-  // 5. the submission's status is 'InProgress'
-
-  def finishSubmission(studentId: StudentId, submissionId: SubmissionId): IO[Either[ExamError | SubmissionError, Submission]] =
-    submissionRepository.finishSubmission(submissionId).map(_.toRight(SubmissionDoesNotExist(submissionId)))
-
-  private def validateExamStatus(examId: ExamId, examStatus: ExamStatus): EitherT[IO, ExamError, Exam] =
-    EitherT(examService.findById(examId))
-      .ensureOr(exam => ExamCannotBeOpened(exam.id, exam.status))(_.status == ExamStatus.OPEN)
-
 sealed trait SubmissionError derives Codec, Schema
+case class SubmissionAlreadyExists(studentId: StudentId, examId: ExamId, submissionId: SubmissionId) extends SubmissionError derives Codec.AsObject, Schema
 case class AlreadySubmitted(studentId: StudentId, examId: ExamId, submissionId: SubmissionId) extends SubmissionError derives Codec.AsObject, Schema
 case class SubmissionDoesNotExist(submissionId: SubmissionId) extends SubmissionError derives Codec.AsObject, Schema
 

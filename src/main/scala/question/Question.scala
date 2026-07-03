@@ -39,7 +39,7 @@ object QuestionData:
 
 case class MultipleChoiceData(
   options: List[String],
-  correctOptionIndex: Int
+  correctOptionIndices: Set[Int]
 ) extends QuestionData
 
 case class TrueFalseData(
