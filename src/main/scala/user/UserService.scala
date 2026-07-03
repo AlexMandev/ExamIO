@@ -22,13 +22,13 @@ class UserService(userRepository: UserRepository, tokenService: TokenSignatureSe
         newUser => createUser(newUser)
       )
 
-  def login(form: UserLoginForm): IO[Option[String]] =
+  def login(form: UserLoginForm): IO[Option[LoginResponse]] =
     for
       maybeUser <- userRepository.getByEmail(form.email)
-      maybeToken <- maybeUser
+      maybeLogin <- maybeUser
         .filter(user => checkPassword(form.password, user.passwordHash))
-        .traverse(tokenService.sign)
-    yield maybeToken
+        .traverse(user => tokenService.sign(user).map(LoginResponse(_, user.role)))
+    yield maybeLogin
 
   private def createUser(newUser: NewUser) =
     for
