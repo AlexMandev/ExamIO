@@ -3,7 +3,9 @@ package client
 import cats.effect.IO
 import cats.implicits.catsSyntaxApplicativeId
 import user.{LoginResponse, UserRole}
-import AuthFlow.{registerFlow, loginFlow}
+import AuthFlow.{loginFlow, registerFlow}
+
+import scala.util.Try
 
 object CommonFlow:
   def startApp(client: ExamIOApiClient): IO[Unit] = greet >> mainLoop(client, false)
@@ -50,7 +52,7 @@ object CommonFlow:
 
   def promptForDecimal(prompt: String): IO[BigDecimal] =
     promptForString(prompt).flatMap: input =>
-      scala.util.Try(BigDecimal(input.trim)).toOption match
+      Try(BigDecimal(input.trim)).toOption match
         case Some(n) if n.scale <= 2 => IO.pure(n)
         case Some(_) => IO.println("Max 2 decimal places allowed.") >> promptForDecimal(prompt)
         case None => IO.println("Please enter a valid number.") >> promptForDecimal(prompt)
