@@ -25,6 +25,9 @@ type AddQuestionError = ExamDoesNotExist | NotAnOwner | ExamNotDraft | QuestionF
 type DeleteQuestionError = ExamDoesNotExist | NotAnOwner | ExamNotDraft | QuestionNotFound
 
 class QuestionService(questionRepository: QuestionRepository, examService: ExamService):
+  def getQuestionById(questionId: QuestionId): IO[Either[QuestionError, Question]] =
+    questionRepository.getQuestionById(questionId).toRight(QuestionNotFound(questionId))
+
   def getQuestionsForExam(userId: UUID, examId: ExamId): IO[Either[ExamError, List[Question]]] =
     val result: EitherT[IO, ExamError, List[Question]] = for
       exam <- EitherT(examService.findById(examId))

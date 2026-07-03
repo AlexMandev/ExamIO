@@ -41,7 +41,7 @@ object QuestionForm:
           )
         ).mapN((_, _) => data)
       case TrueFalseData(_) => data.validNec
-      case ShortAnswerData() => data.validNec
+      case ShortAnswerData(_) => data.validNec
 
 sealed trait QuestionFormError derives Codec, Schema
 case class InvalidQuestionText(msg: String) extends QuestionFormError

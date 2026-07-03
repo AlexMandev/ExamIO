@@ -26,6 +26,15 @@ class QuestionRepository(dbTransactor: DBTransactor):
       .transact(dbTransactor)
       .as(q)
 
+  def getQuestionById(questionId: QuestionId): IO[Option[Question]] =
+    sql"""
+        SELECT * FROM questions
+        WHERE id = $questionId
+      """
+      .query[Question]
+      .option
+      .transact(dbTransactor)
+
   def getQuestionsByExamId(examId: ExamId): IO[List[Question]] =
     sql"""
          SELECT * FROM questions
