@@ -1,6 +1,6 @@
 package client
 
-import CommonFlow.{promptForStringLine, promptForString}
+import CommonFlow.{promptForString, pressEnterToContinue}
 
 import cats.effect.IO
 import cats.implicits.*
@@ -16,7 +16,6 @@ import user.{
   UserLoginForm,
   UserRegistrationError,
   UserRegistrationForm,
-  UserRole,
   UserRoleError
 }
 
@@ -44,6 +43,7 @@ object AuthFlow:
         printRegistrationError,
         user => IO.println(s"Registered! Welcome, ${user.firstName}. You can log in now.")
       )
+      _ <- pressEnterToContinue
     yield ()
 
   private def printRegistrationError(err: UserRegistrationError): IO[Unit] =
@@ -58,5 +58,5 @@ object AuthFlow:
     err match
       case EmailError(email) => s"Invalid email address: $email"
       case PasswordError(_) => "Password must be at least 8 characters"
-      case NameError(name) => s"Invalid name: $name"
+      case NameError(name) => s"Invalid name: '$name'"
       case UserRoleError(role) => s"Invalid role '$role' — must be TEACHER or STUDENT"

@@ -14,8 +14,8 @@ object CommonFlow:
       _ <- displayMenu
       command <- promptForStringLine("Choose an option: ").map(_.trim)
       _ <- command match
-        case "1" => startTeacherFlow(client)
-        case "2" => startStudentFlow(client)
+        case "1" => startTeacherFlow(client) >> mainLoop(client, true)
+        case "2" => startStudentFlow(client) >> mainLoop(client, true)
         case "3" => registerFlow(client) >> mainLoop(client, true)
         case "4" => ().pure[IO]
         case _ => IO.println("Invalid option.") >> mainLoop(client, true)
@@ -23,21 +23,37 @@ object CommonFlow:
 
   private def startTeacherFlow(client: ExamIOApiClient): IO[Unit] =
     loginFlow(client).flatMap:
-      case Some(LoginResponse(token, UserRole.TEACHER)) => TeacherFlow(client, token).run
-      case Some(_) => IO.println("This is not a teacher account.") >> mainLoop(client, true)
-      case None => mainLoop(client, true)
+      case Some(LoginResponse(token, UserRole.TEACHER)) => TeacherFlow(client, token).run()
+      case Some(_) => IO.println("This is not a teacher account.") >> pressEnterToContinue >> mainLoop(client, true)
+      case None => pressEnterToContinue >> mainLoop(client, true)
 
   private def startStudentFlow(client: ExamIOApiClient): IO[Unit] =
     loginFlow(client).flatMap:
       case Some(LoginResponse(token, UserRole.STUDENT)) => StudentFlow(client, token).run
-      case Some(_) => IO.println("This is not a student account.") >> mainLoop(client, true)
-      case None => mainLoop(client, true)
+      case Some(_) => IO.println("This is not a student account.") >> pressEnterToContinue >> mainLoop(client, true)
+      case None => pressEnterToContinue >> mainLoop(client, true)
 
   def promptForString(prompt: String): IO[String] =
     IO.print(prompt) >> IO.readLine
 
   def promptForStringLine(prompt: String): IO[String] =
     IO.println(prompt) >> IO.readLine
+
+  def pressEnterToContinue: IO[Unit] =
+    IO.println("") >> IO.print("Press Enter to continue...") >> IO.readLine.void
+
+  def promptForInt(prompt: String): IO[Int] =
+    promptForString(prompt).flatMap: input =>
+      input.trim.toIntOption match
+        case Some(n) => IO.pure(n)
+        case None => IO.println("Please enter a valid number.") >> promptForInt(prompt)
+
+  def promptForDecimal(prompt: String): IO[BigDecimal] =
+    promptForString(prompt).flatMap: input =>
+      scala.util.Try(BigDecimal(input.trim)).toOption match
+        case Some(n) if n.scale <= 2 => IO.pure(n)
+        case Some(_) => IO.println("Max 2 decimal places allowed.") >> promptForDecimal(prompt)
+        case None => IO.println("Please enter a valid number.") >> promptForDecimal(prompt)
 
   def clearConsole: IO[Unit] = IO.print("\u001b[H\u001b[2J")
 
