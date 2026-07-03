@@ -12,9 +12,10 @@ object ExamEndpoints:
   private val baseExamEndpoint = apiBaseEndpoint.in("exams").tag("Exams")
 
   val createExamEndpoint = baseExamEndpoint
-    .secure(UserRole.TEACHER)
+    .secure(UserRole.TEACHER, oneOf[ExamFormValidationError](
+      oneOfVariant(statusCode(BadRequest).and(jsonBodyTypedError[ExamFormValidationError]))
+    ))
     .in(jsonBody[ExamForm])
-    .errorOutVariant(oneOfVariant(statusCode(BadRequest).and(jsonBody[ExamCreationError])))
     .out(statusCode(Created).and(jsonBody[Exam]))
     .post
 

@@ -10,12 +10,12 @@ import doobie.postgres.implicits.*
 import infrastructure.db.DBDoobie.DBTransactor
 
 class ExamRepository(dbTransactor: DBTransactor):
-  def createExam(exam: NewExam): IO[Either[ExamCreationError, Exam]] =
+  def createExam(exam: NewExam): IO[Exam] =
     sql"""
         INSERT INTO exams (id, name, description, time_limit_minutes, teacher_id)
         VALUES (${exam.id}, ${exam.name}, ${exam.description}, ${exam.timeLimitMinutes}, ${exam.teacherId})
         RETURNING *
-    """.query[Exam].unique.transact(dbTransactor).map(_.asRight)
+    """.query[Exam].unique.transact(dbTransactor)
 
   def getExamsBy(teacherId: TeacherId): IO[List[Exam]] =
     sql"""
