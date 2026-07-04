@@ -4,6 +4,8 @@ import infrastructure.auth.AuthenticationService
 
 import cats.syntax.all.*
 
+import user.TeacherId
+
 class ExamController(examService: ExamService, authenticationService: AuthenticationService):
   import authenticationService.*
 

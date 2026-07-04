@@ -39,14 +39,14 @@ object QuestionData:
 
 case class MultipleChoiceData(
   options: List[String],
-  correctOptionIndex: Int
+  correctOptionIndices: Set[Int]
 ) extends QuestionData
 
 case class TrueFalseData(
   correctAnswer: Boolean
 ) extends QuestionData
 
-case class ShortAnswerData() extends QuestionData
+case class ShortAnswerData(limit: Int) extends QuestionData
 
 case class Question(
   id: QuestionId,

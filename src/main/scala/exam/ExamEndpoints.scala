@@ -29,7 +29,7 @@ object ExamEndpoints:
       oneOf[OpenExamError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotAnOwner])),
-        oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[ExamCannotBeOpened]))
+        oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[ExamStatusMismatch]))
       )
     )
     .in(path[ExamId]("examId"))
@@ -42,7 +42,7 @@ object ExamEndpoints:
       oneOf[CloseExamError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotAnOwner])),
-        oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[ExamCannotBeClosed]))
+        oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[ExamStatusMismatch]))
       )
     )
     .in(path[ExamId]("examId"))
