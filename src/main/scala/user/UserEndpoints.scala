@@ -20,5 +20,5 @@ object UserEndpoints:
     .in("login")
     .in(jsonBody[UserLoginForm])
     .errorOut(statusCode(Unauthorized))
-    .out(stringBody)
+    .out(jsonBody[LoginResponse])
     .post

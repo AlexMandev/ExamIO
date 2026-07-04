@@ -31,6 +31,11 @@ libraryDependencies ++= Seq(
   "com.softwaremill.sttp.tapir" %% "tapir-cats" % tapirVersion,
   "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % tapirVersion,
 
+  "com.softwaremill.sttp.tapir" %% "tapir-sttp-client4" % tapirVersion,
+
+  "com.softwaremill.sttp.client4" %% "core" % "4.0.25",
+  "com.softwaremill.sttp.client4" %% "cats" % "4.0.25",
+
   "org.mindrot" % "jbcrypt" % "0.4",
 
   "org.http4s" %% "http4s-ember-server" % http4sVersion,

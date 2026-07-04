@@ -14,10 +14,13 @@ import utils.DerivationConfiguration.given
 import user.{TeacherId, StudentId}
 
 class ExamService(examRepository: ExamRepository):
-  def createExam(examForm: ExamForm, teacherId: TeacherId): IO[Either[ExamCreationError, Exam]] =
+  def createExam(examForm: ExamForm, teacherId: TeacherId): IO[Either[ExamFormValidationError, Exam]] =
     ExamForm
       .validate(examForm)
-      .fold(errors => IO.pure(ExamFormValidationError(errors).asLeft), form => createNewExam(form, teacherId))
+      .fold(
+        errors => IO.pure(ExamFormValidationError(errors).asLeft),
+        form => createNewExam(form, teacherId).map(_.asRight)
+      )
 
   def getExamsBy(teacherId: TeacherId): IO[List[Exam]] = examRepository.getExamsBy(teacherId)
 
@@ -65,8 +68,9 @@ sealed trait ExamError derives Codec, Schema
 
 case class ExamDoesNotExist(examId: ExamId) extends ExamError derives Codec.AsObject, Schema
 
-sealed trait ExamCreationError extends ExamError derives Codec, Schema
-case class ExamFormValidationError(errors: NonEmptyChain[ExamFormError]) extends ExamCreationError
+case class ExamFormValidationError(errors: NonEmptyChain[ExamFormError]) extends ExamError
+    derives Codec.AsObject,
+      Schema
 
 sealed trait ExamStatusError extends ExamError derives Codec, Schema
 case class ExamStatusMismatch(examId: ExamId, message: String) extends ExamStatusError derives Codec.AsObject, Schema
