@@ -1,4 +1,4 @@
-package answer
+package answers
 
 import io.circe.Codec
 import sttp.tapir.Schema

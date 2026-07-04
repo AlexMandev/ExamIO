@@ -1,4 +1,4 @@
-package answer
+package answers
 
 import sttp.tapir.*
 import sttp.tapir.generic.auto.*

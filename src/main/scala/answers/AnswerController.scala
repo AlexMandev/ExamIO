@@ -1,4 +1,4 @@
-package answer
+package answers
 
 import cats.effect.IO
 import sttp.tapir.server.ServerEndpoint
