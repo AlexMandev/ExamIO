@@ -8,12 +8,10 @@ import utils.DerivationConfiguration.given
 import utils.DoobieUtils.given
 
 import sttp.tapir
-import sttp.tapir.{CodecFormat, Schema}
+import sttp.tapir.Schema
 
 import doobie.Meta
 import doobie.postgres.implicits.*
-
-import java.util.UUID
 
 import question.{QuestionId, Question, QuestionType}
 import submission.SubmissionId
@@ -43,14 +41,13 @@ extension (answerData: AnswerData)
 case class Answer(
   questionId: QuestionId,
   submissionId: SubmissionId,
-  answerType: AnswerType,
   data: AnswerData
 ) derives Codec,
       Schema
 
 extension (answer: Answer)
   def matchType(question: Question): Boolean =
-    answer.answerType match
-      case AnswerType.TrueFalse => question.questionType == QuestionType.TrueFalse
-      case AnswerType.MultipleChoice => question.questionType == QuestionType.MultipleChoice
-      case AnswerType.ShortAnswer => question.questionType == QuestionType.ShortAnswer
+    answer.data match
+      case _: TrueFalse => question.questionType == QuestionType.TrueFalse
+      case _: MultipleChoice => question.questionType == QuestionType.MultipleChoice
+      case _: ShortAnswer => question.questionType == QuestionType.ShortAnswer

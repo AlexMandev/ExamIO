@@ -11,13 +11,20 @@ import sttp.tapir.integ.cats.codec.schemaForNec
 import java.util.UUID
 
 import question.{QuestionId, QuestionService, QuestionNotFound, QuestionType}
-import submission.{SubmissionId, SubmissionService, SubmissionDoesNotExist, NotSubmissionOwner, AlreadySubmitted, SubmissionStatus}
+import submission.{
+  SubmissionId,
+  SubmissionService,
+  SubmissionDoesNotExist,
+  NotSubmissionOwner,
+  AlreadySubmitted,
+  SubmissionStatus
+}
 import exam.{ExamId, ExamDoesNotExist, ExamStatusMismatch, ExamService, ExamStatus}
 import user.StudentId
 
 type AnswerServiceError =
-  AnswerDoesNotExist | AnswerTypeMismatch | AnswerFormValidationError | QuestionNotFound |
-    SubmissionDoesNotExist | NotSubmissionOwner | AlreadySubmitted | ExamDoesNotExist | ExamStatusMismatch
+  AnswerDoesNotExist | AnswerTypeMismatch | AnswerFormValidationError | QuestionNotFound | SubmissionDoesNotExist |
+    NotSubmissionOwner | AlreadySubmitted | ExamDoesNotExist | ExamStatusMismatch
 
 class AnswerService(
   answerRepository: AnswerRepository,
@@ -88,13 +95,12 @@ class AnswerService(
       answer = Answer(
         questionId = questionId,
         submissionId = submissionId,
-        answerType = validatedForm.answerData.toType,
         data = validatedForm.answerData
       )
 
       _ <- EitherT
         .pure(answer)
-        .ensure(AnswerTypeMismatch(answer.answerType, question.questionType))(_.matchType(question))
+        .ensure(AnswerTypeMismatch(answer.data.toType, question.questionType))(_.matchType(question))
 
       savedAnswer <-
         EitherT.liftF(answerRepository.addAnswer(answer))
