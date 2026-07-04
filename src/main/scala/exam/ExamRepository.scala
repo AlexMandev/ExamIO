@@ -52,3 +52,12 @@ class ExamRepository(dbTransactor: DBTransactor):
       """.update.run
       .transact(dbTransactor)
       .void
+
+  def gradeExamById(examId: ExamId): IO[Unit] =
+    sql"""
+        UPDATE exams
+        SET status = 'graded'
+        WHERE id = ${examId} AND status = 'closed'
+      """.update.run
+      .transact(dbTransactor)
+      .void

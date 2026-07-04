@@ -43,3 +43,20 @@ class AnswerRepository(dbTransactor: DBTransactor):
       """.update.run
       .transact(dbTransactor)
       .void
+
+  def getAllForSubmissionOrderedByQuestionPosition(submissionId: SubmissionId): IO[List[Answer]] =
+    sql"""
+         SELECT * FROM answers a
+         JOIN questions q ON a.question_id = q.id
+         WHERE submission_id = ${submissionId}
+         ORDER BY q.position ASC
+         """.query[Answer].to[List].transact(dbTransactor)
+
+  def setPointsAwarded(questionId: QuestionId, submissionId: SubmissionId, points: BigDecimal): IO[Unit] =
+    sql"""
+        UPDATE answers
+        SET points_awarded = $points
+        WHERE question_id = $questionId AND submission_id = $submissionId
+      """.update.run
+      .transact(dbTransactor)
+      .void

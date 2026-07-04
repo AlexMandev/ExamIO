@@ -182,7 +182,7 @@ class TeacherFlow(client: ExamIOApiClient, token: String):
       options <- collectOptions(List.empty)
       _ <- IO.println(options.zipWithIndex.map { case (opt, i) => s"  ${i + 1}. $opt" }.mkString("\n"))
       idx <- promptForInt("Correct option number: ").map(_ - 1)
-    yield MultipleChoiceData(options, Set(idx))
+    yield MultipleChoiceData(options, idx)
 
   private def collectOptions(acc: List[String]): IO[List[String]] =
     promptForString(s"Option ${acc.length + 1}: ").flatMap: input =>

@@ -35,10 +35,11 @@ class QuestionRepository(dbTransactor: DBTransactor):
       .option
       .transact(dbTransactor)
 
-  def getQuestionsByExamId(examId: ExamId): IO[List[Question]] =
+  def getQuestionsByExamOrderedByPosition(examId: ExamId): IO[List[Question]] =
     sql"""
          SELECT * FROM questions
          WHERE exam_id = ${examId}
+         ORDER BY position ASC
          """.query[Question].to[List].transact(dbTransactor)
 
   def deleteQuestion(questionId: QuestionId, examId: ExamId): IO[Boolean] =
