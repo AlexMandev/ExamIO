@@ -39,7 +39,7 @@ object QuestionData:
 
 case class MultipleChoiceData(
   options: List[String],
-  correctOptionIndices: Set[Int]
+  correctOptionIndex: Int
 ) extends QuestionData
 
 case class TrueFalseData(
@@ -58,3 +58,26 @@ case class Question(
   data: QuestionData
 ) derives Codec,
       Schema
+
+sealed trait PublicQuestionData derives Codec, Schema
+case class PublicMultipleChoiceData(options: List[String]) extends PublicQuestionData
+case class PublicTrueFalseData() extends PublicQuestionData
+case class PublicShortAnswerData(limit: Int) extends PublicQuestionData
+
+case class PublicQuestion(
+  id: QuestionId,
+  questionText: String,
+  questionType: QuestionType,
+  points: BigDecimal,
+  position: Int,
+  data: PublicQuestionData
+) derives Codec,
+      Schema
+
+extension (question: Question)
+  def toPublic: PublicQuestion =
+    val publicData = question.data match
+      case MultipleChoiceData(options, _) => PublicMultipleChoiceData(options)
+      case TrueFalseData(_) => PublicTrueFalseData()
+      case ShortAnswerData(limit) => PublicShortAnswerData(limit)
+    PublicQuestion(question.id, question.questionText, question.questionType, question.points, question.position, publicData)

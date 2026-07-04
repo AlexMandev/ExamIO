@@ -12,7 +12,7 @@ import user.UserModule
 import exam.ExamModule
 import question.QuestionModule
 import submission.SubmissionModule
-import answer.AnswerModule
+import answers.AnswerModule
 
 object ExamIO extends IOApp.Simple:
   val app: Resource[IO, Server] = for

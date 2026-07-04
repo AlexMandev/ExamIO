@@ -16,15 +16,13 @@ import exam.{ExamId, ExamError, ExamService, ExamStatus, ExamDoesNotExist}
 class SubmissionService(submissionRepository: SubmissionRepository, examService: ExamService):
   def getSubmissionById(submissionId: SubmissionId, examId: ExamId, studentId: StudentId)
     : IO[Either[ExamDoesNotExist | SubmissionDoesNotExist | NotSubmissionOwner, Submission]] =
-    (
-      EitherT(
-        submissionRepository
-          .getSubmissionById(submissionId)
-          .map(_.toRight(SubmissionDoesNotExist(submissionId)))
-      )
-        .ensureOr(sub => ExamDoesNotExist(examId))(_.examId == examId)
-        .ensureOr(sub => NotSubmissionOwner(studentId, sub.id))(_.studentId == studentId)
-      )
+    EitherT(
+      submissionRepository
+        .getSubmissionById(submissionId)
+        .map(_.toRight(SubmissionDoesNotExist(submissionId)))
+    )
+      .ensureOr(sub => ExamDoesNotExist(examId))(_.examId == examId)
+      .ensureOr(sub => NotSubmissionOwner(studentId, sub.id))(_.studentId == studentId)
       .value
 
   def createSubmission(submissionForm: SubmissionForm): IO[Either[ExamError | SubmissionError, Submission]] =

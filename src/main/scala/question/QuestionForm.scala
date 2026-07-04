@@ -33,11 +33,11 @@ object QuestionForm:
 
   private def validateData(data: QuestionData): QuestionValidation[QuestionData] =
     data match
-      case MultipleChoiceData(options, idxs) =>
+      case MultipleChoiceData(options, idx) =>
         (
           validateToNec(options, InvalidQuestionData("Multiple choice requires at least 2 options"))(_.length >= 2),
-          validateToNec(idxs, InvalidQuestionData("Correct option index is out of range"))(is =>
-            is.forall(i => i >= 0 && i < options.length)
+          validateToNec(idx, InvalidQuestionData("Correct option index is out of range"))(i =>
+            i >= 0 && i < options.length
           )
         ).mapN((_, _) => data)
       case TrueFalseData(_) => data.validNec

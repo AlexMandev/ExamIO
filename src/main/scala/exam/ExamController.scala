@@ -2,11 +2,13 @@ package exam
 
 import infrastructure.auth.AuthenticationService
 
+import cats.effect.IO
 import cats.syntax.all.*
 
+import grading.GradingService
 import user.TeacherId
 
-class ExamController(examService: ExamService, authenticationService: AuthenticationService):
+class ExamController(examService: ExamService, gradingService: GradingService, authenticationService: AuthenticationService):
   import authenticationService.*
 
   def createExam = ExamEndpoints.createExamEndpoint.authenticate.serverLogic { user => form =>
@@ -22,7 +24,12 @@ class ExamController(examService: ExamService, authenticationService: Authentica
   }
 
   def closeExam = ExamEndpoints.closeExamEndpoint.authenticate.serverLogic { user => examId =>
-    examService.closeExam(examId, TeacherId(user.id))
+    for
+      result <- examService.closeExam(examId, TeacherId(user.id))
+      _ <- result match
+        case Right(_) => gradingService.gradeExamAutomatically(examId)
+        case Left(_) => IO.unit
+    yield result
   }
 
   val endpoints = List(createExam, getOwnExams, openExam, closeExam)

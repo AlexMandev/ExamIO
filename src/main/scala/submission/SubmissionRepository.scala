@@ -51,3 +51,27 @@ class SubmissionRepository(dbTransactor: DBTransactor):
       .query[Submission]
       .option
       .transact(dbTransactor)
+
+  def finishAllInProgressForExam(examId: ExamId): IO[Unit] =
+    sql"""
+        UPDATE submissions
+        SET status = 'Finished', finished_at = NOW()
+        WHERE exam_id = $examId AND status = 'InProgress'
+      """.update.run
+      .transact(dbTransactor)
+      .void
+
+  def getSubmissionsForExam(examId: ExamId): IO[List[Submission]] =
+    sql"""
+         SELECT * FROM submissions
+         WHERE exam_id = ${examId}
+         """.query[Submission].to[List].transact(dbTransactor)
+
+  def gradeSubmission(submissionId: SubmissionId, score: BigDecimal): IO[Unit] =
+    sql"""
+        UPDATE submissions
+        SET status = 'Graded', score = $score
+        WHERE id = $submissionId AND status = 'Finished'
+      """.update.run
+      .transact(dbTransactor)
+      .void

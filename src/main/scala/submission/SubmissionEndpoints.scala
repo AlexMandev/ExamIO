@@ -8,19 +8,20 @@ import sttp.model.StatusCode.{BadRequest, Conflict, Created, Forbidden, NotFound
 
 import infrastructure.ExamIOEndpoints.{apiBaseEndpoint, secure}
 
-import exam.{ExamId, ExamDoesNotExist, ExamStatusMismatch, ExamError}
+import exam.{ExamId, ExamDoesNotExist, ExamStatusMismatch, ExamError, NotAnOwner}
 import user.UserRole
 import utils.jsonBodyTypedError
 
 object SubmissionEndpoints:
-  private val submissionBaseEndpoint =
-    apiBaseEndpoint.in("exams" / path[ExamId]("examId") / "submissions").tag("Submissions")
+  private val examBaseEndpoint = apiBaseEndpoint.in("exams" / path[ExamId]("examId")).tag("Submissions")
+
+  private val submissionBaseEndpoint = examBaseEndpoint.in("submissions")
 
   private val submissionEndpoint = submissionBaseEndpoint.in(path[SubmissionId]("submissionId") / "submit")
 
   val createSubmissionEndpoint = submissionBaseEndpoint
     .secure(
-      UserRole.STUDENT,
+      Some(UserRole.STUDENT),
       oneOf[ExamError | SubmissionError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[ExamStatusMismatch])),
@@ -30,9 +31,34 @@ object SubmissionEndpoints:
     .out(statusCode(Created).and(jsonBody[Submission]))
     .post
 
+  val getResultsEndpoint = examBaseEndpoint
+    .in("results")
+    .secure(
+      Some(UserRole.TEACHER),
+      oneOf[ExamDoesNotExist | NotAnOwner](
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
+        oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotAnOwner]))
+      )
+    )
+    .out(jsonBody[List[Submission]])
+    .get
+
+  val getResultEndpoint = submissionBaseEndpoint
+    .in(path[SubmissionId]("submissionId") / "result")
+    .secure(
+      Some(UserRole.STUDENT),
+      oneOf[ExamDoesNotExist | SubmissionDoesNotExist | NotSubmissionOwner](
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),
+        oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotSubmissionOwner]))
+      )
+    )
+    .out(jsonBody[Submission])
+    .get
+
   val finishSubmissionEndpoint = submissionEndpoint
     .secure(
-      UserRole.STUDENT,
+      Some(UserRole.STUDENT),
       oneOf[ExamError | SubmissionError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),

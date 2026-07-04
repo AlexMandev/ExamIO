@@ -1,4 +1,4 @@
-package answer
+package answers
 
 import io.circe.{Codec, Json}
 import io.circe.derivation.ConfiguredEnumCodec
@@ -23,7 +23,7 @@ object AnswerType:
   given Meta[AnswerType] = Meta[String].imap(AnswerType.valueOf)(_.toString)
 
 sealed trait AnswerData derives Codec, Schema
-case class MultipleChoice(answerIndices: Set[Int]) extends AnswerData
+case class MultipleChoice(answerIndex: Int) extends AnswerData
 case class TrueFalse(answer: Option[Boolean]) extends AnswerData
 case class ShortAnswer(answer: String) extends AnswerData
 
@@ -41,7 +41,8 @@ extension (answerData: AnswerData)
 case class Answer(
   questionId: QuestionId,
   submissionId: SubmissionId,
-  data: AnswerData
+  data: AnswerData,
+  pointsAwarded: Option[BigDecimal] = None
 ) derives Codec,
       Schema
 

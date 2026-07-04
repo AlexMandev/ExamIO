@@ -1,4 +1,4 @@
-package answer
+package answers
 
 import sttp.tapir.*
 import sttp.tapir.generic.auto.*
@@ -12,7 +12,7 @@ import infrastructure.ExamIOEndpoints.{secure, apiBaseEndpoint}
 import utils.jsonBodyTypedError
 import user.UserRole
 import question.{QuestionId, QuestionNotFound}
-import exam.{ExamId, ExamDoesNotExist, ExamStatusMismatch}
+import exam.{ExamId, ExamDoesNotExist, ExamStatusMismatch, NotAnOwner}
 import submission.{SubmissionId, SubmissionDoesNotExist, AlreadySubmitted, NotSubmissionOwner}
 
 object AnswerEndpoints:
@@ -25,7 +25,7 @@ object AnswerEndpoints:
   def getAnswerEndpoint = answerBaseEndpoint
     // FIX: this probably won't allow for the teacher to access answers
     .secure(
-      UserRole.STUDENT,
+      Option(UserRole.STUDENT),
       oneOf[AnswerServiceError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound])),
@@ -39,7 +39,7 @@ object AnswerEndpoints:
 
   def addAnswerEndpoint = answerBaseEndpoint
     .secure(
-      UserRole.STUDENT,
+      Option(UserRole.STUDENT),
       oneOf[AnswerServiceError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound])),
@@ -58,7 +58,7 @@ object AnswerEndpoints:
 
   def clearAnswerEndpoint = answerBaseEndpoint
     .secure(
-      UserRole.STUDENT,
+      Some(UserRole.STUDENT),
       oneOf[AnswerServiceError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound])),
@@ -68,3 +68,20 @@ object AnswerEndpoints:
       )
     )
     .delete
+
+  def gradeAnswerEndpoint = answerBaseEndpoint
+    .in("grade")
+    .secure(
+      Some(UserRole.TEACHER),
+      oneOf[ExamDoesNotExist | NotAnOwner | ExamStatusMismatch | QuestionNotFound | AnswerDoesNotExist | InvalidPointsAwarded](
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
+        oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotAnOwner])),
+        oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[ExamStatusMismatch])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[AnswerDoesNotExist])),
+        oneOfVariant(statusCode(BadRequest).and(jsonBodyTypedError[InvalidPointsAwarded]))
+      )
+    )
+    .in(jsonBody[GradeAnswerForm])
+    .out(jsonBody[Answer])
+    .patch
