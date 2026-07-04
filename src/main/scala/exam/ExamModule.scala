@@ -4,7 +4,7 @@ import cats.effect.{IO, Resource}
 import infrastructure.auth.AuthenticationService
 import sttp.tapir.server.ServerEndpoint
 import infrastructure.db.DBDoobie.DBTransactor
-import answer.AnswerRepository
+import answers.AnswerRepository
 import grading.GradingService
 import question.QuestionRepository
 import submission.SubmissionRepository

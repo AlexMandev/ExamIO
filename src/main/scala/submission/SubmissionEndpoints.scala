@@ -13,8 +13,9 @@ import user.UserRole
 import utils.jsonBodyTypedError
 
 object SubmissionEndpoints:
-  private val submissionBaseEndpoint =
-    apiBaseEndpoint.in("exams" / path[ExamId]("examId") / "submissions").tag("Submissions")
+  private val examBaseEndpoint = apiBaseEndpoint.in("exams" / path[ExamId]("examId")).tag("Submissions")
+
+  private val submissionBaseEndpoint = examBaseEndpoint.in("submissions")
 
   private val submissionEndpoint = submissionBaseEndpoint.in(path[SubmissionId]("submissionId") / "submit")
 
@@ -30,7 +31,7 @@ object SubmissionEndpoints:
     .out(statusCode(Created).and(jsonBody[Submission]))
     .post
 
-  val getResultsEndpoint = submissionBaseEndpoint
+  val getResultsEndpoint = examBaseEndpoint
     .in("results")
     .secure(
       Some(UserRole.TEACHER),

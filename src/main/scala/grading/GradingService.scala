@@ -1,6 +1,6 @@
 package grading
 
-import answer.{Answer, AnswerRepository, MultipleChoice, ShortAnswer, TrueFalse, matchType}
+import answers.{Answer, AnswerRepository, MultipleChoice, ShortAnswer, TrueFalse, matchType}
 import cats.effect.IO
 import cats.syntax.all.*
 import exam.{ExamId, ExamRepository}
@@ -53,10 +53,12 @@ class GradingService(
   private def sealSubmission(submission: Submission, score: BigDecimal): IO[Unit] =
     submissionRepository.gradeSubmission(submission.id, score)
 
-  private def maybeGradeExam(examId: ExamId): IO[Unit] =
+  def maybeGradeExam(examId: ExamId): IO[Unit] =
     for
       submissions <- submissionRepository.getSubmissionsForExam(examId)
-      _ <- if submissions.forall(_.status == SubmissionStatus.Graded) then examRepository.gradeExamById(examId) else IO.unit
+      _ <-
+        if submissions.forall(_.status == SubmissionStatus.Graded) then examRepository.gradeExamById(examId)
+        else IO.unit
     yield ()
 
   private def isAnsweredCorrectly(question: Question, answer: Answer): Option[Boolean] =
