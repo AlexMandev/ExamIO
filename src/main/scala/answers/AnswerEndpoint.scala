@@ -5,15 +5,15 @@ import sttp.tapir.generic.auto.*
 import sttp.tapir.json.circe.jsonBody
 import sttp.tapir.integ.cats.codec.*
 import sttp.model.StatusCode
-import sttp.model.StatusCode.{Created, NotFound}
+import sttp.model.StatusCode.{Created, NotFound, BadRequest, Conflict}
 
 import infrastructure.ExamIOEndpoints.{secure, apiBaseEndpoint}
 
 import utils.jsonBodyTypedError
 import user.UserRole
-import question.QuestionId
-import exam.ExamId
-import submission.SubmissionId
+import question.{QuestionId, QuestionNotFound}
+import exam.{ExamId, ExamDoesNotExist, ExamCannotBeOpened}
+import submission.{SubmissionId, SubmissionDoesNotExist, AlreadySubmitted}
 
 object AnswerEndpoint:
   private val answerBaseEndpoint = apiBaseEndpoint
@@ -22,9 +22,12 @@ object AnswerEndpoint:
     .in("answers" / path[QuestionId]("questionId")).tag("Answers")
 
   def getAnswerEndpoint = answerBaseEndpoint
-    // TODO: this probably won't allow for the teacher to access answers
+    // FIX: this probably won't allow for the teacher to access answers
     .secure(UserRole.STUDENT,
-      oneOf[AnswerError](
+      oneOf[AnswerServiceError](
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[AnswerDoesNotExist]))
       )
     )
@@ -32,14 +35,29 @@ object AnswerEndpoint:
     .get
 
   def addAnswerEndpoint = answerBaseEndpoint
-    .secure(UserRole.STUDENT)
+    .secure(UserRole.STUDENT,
+      oneOf[AnswerServiceError](
+
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[AnswerDoesNotExist])),
+        oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[ExamCannotBeOpened])),
+        oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[AlreadySubmitted])),
+        oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[AnswerTypeMismatch])),
+        oneOfVariant(statusCode(BadRequest).and(jsonBodyTypedError[AnswerFormValidationError]))
+      )
+    )
     .in(jsonBody[AnswerForm])
     .out(statusCode(Created).and(jsonBody[Answer]))
     .post
 
   def clearAnswerEndpoint = answerBaseEndpoint
     .secure(UserRole.STUDENT,
-      oneOf[AnswerError](
+      oneOf[AnswerServiceError](
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[AnswerDoesNotExist]))
       )
     )

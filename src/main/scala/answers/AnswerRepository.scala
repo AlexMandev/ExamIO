@@ -2,6 +2,8 @@ package answer
 
 import cats.effect.IO
 
+import io.circe.syntax.*
+
 import doobie.*
 import doobie.implicits.*
 import doobie.postgres.implicits.*
@@ -23,11 +25,14 @@ class AnswerRepository(dbTransactor: DBTransactor):
       .option
       .transact(dbTransactor)
 
+  // create if it doesn't exist, replace it otherwise
   def addAnswer(answer: Answer): IO[Answer] =
     sql"""
-        INSERT INTO answers (question_id, submission_id, data)
-        VALUES (${answer.questionId}, ${answer.submissionId}, ${answer.data})
-      """
+      INSERT INTO answers (question_id, submission_id, data)
+      VALUES (${answer.questionId}, ${answer.submissionId}, ${answer.data.asJson})
+      ON CONFLICT (question_id, submission_id)
+      DO UPDATE SET data = EXCLUDED.data
+    """
       .update
       .run
       .transact(dbTransactor)
@@ -41,3 +46,4 @@ class AnswerRepository(dbTransactor: DBTransactor):
       .update
       .run
       .transact(dbTransactor)
+      .void

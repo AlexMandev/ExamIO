@@ -11,10 +11,19 @@ import sttp.tapir.Schema
 import java.util.UUID
 
 import user.StudentId
-import exam.{Exam, ExamId, ExamError, ExamService, ExamCannotBeOpened, ExamStatus}
+import exam.{Exam, ExamId, ExamError, ExamService, ExamCannotBeOpened, ExamStatus, ExamDoesNotExist}
 import cats.instances.map
 
 class SubmissionService(submissionRepository: SubmissionRepository, examService: ExamService):
+  def getSubmissionById(submissionId: SubmissionId, examId: ExamId, studentId: StudentId): IO[Either[ExamError | SubmissionError, Submission]] =
+    (
+      EitherT(submissionRepository.getSubmissionById(submissionId)
+        .map(_.toRight(SubmissionDoesNotExist(submissionId))))
+        .ensureOr(sub => ExamDoesNotExist(examId))(_.examId == examId)
+        // .ensureOr(sub => Sutdent)
+    )
+    .value
+
   def createSubmission(submissionForm: SubmissionForm): IO[Either[ExamError | SubmissionError, Submission]] =
     val result =
       for
