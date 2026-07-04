@@ -30,12 +30,13 @@ import question.{
   TrueFalseData
 }
 import CommonFlow.*
+import client.utils.OptionUtils.*
 
 class TeacherFlow(client: ExamIOApiClient, token: String):
-  def run(status: Option[String] = None): IO[Unit] =
+  def run(preliminaryMessage: Option[String] = None): IO[Unit] =
     for
       _ <- clearConsole
-      _ <- status.fold(().pure[IO])(s => IO.println(s + "\n"))
+      _ <- preliminaryMessage.printLn
       _ <- displayMenu
       command <- promptForString("> ").map(_.trim)
       _ <- command match
@@ -95,17 +96,16 @@ class TeacherFlow(client: ExamIOApiClient, token: String):
     yield ()
 
   private def displayExamList(exams: List[Exam]): IO[Unit] =
-    IO.println(
-      "=== Your Exams ===\n" +
-        exams.zipWithIndex
-          .map { case (exam, i) => s"${i + 1}. ${exam.name} [${exam.status}]" }
-          .mkString("\n")
+    IO.println("=== Your Exams ===") >> IO.println(
+      exams.zipWithIndex
+        .map { case (exam, i) => s"${i + 1}. ${exam.name} [${exam.status}]" }
+        .mkString("\n")
     )
 
-  private def examMenu(exam: Exam, status: Option[String] = None): IO[Unit] =
+  private def examMenu(exam: Exam, preliminaryMessage: Option[String] = None): IO[Unit] =
     for
       _ <- clearConsole
-      _ <- status.fold(().pure[IO])(s => IO.println(s + "\n"))
+      _ <- preliminaryMessage.printLn
       _ <- displayExamMenu(exam)
       command <- promptForString("> ").map(_.trim)
       _ <- command match
@@ -214,7 +214,7 @@ class TeacherFlow(client: ExamIOApiClient, token: String):
       _ <- IO.println(
         questions.zipWithIndex.map { case (q, i) => s"${i + 1}. ${q.questionText}" }.mkString("\n")
       )
-      _ <- IO.println("\n0. Cancel")
+      _ <- IO.println("") >> IO.println("0. Cancel")
       input <- promptForString("> ").map(_.trim)
       msg <- input.toIntOption match
         case Some(0) => IO.pure("")
