@@ -9,6 +9,8 @@ import doobie.postgres.implicits.*
 
 import infrastructure.db.DBDoobie.DBTransactor
 
+import user.TeacherId
+
 class ExamRepository(dbTransactor: DBTransactor):
   def createExam(exam: NewExam): IO[Exam] =
     sql"""

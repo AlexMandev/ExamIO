@@ -2,14 +2,15 @@ package question
 
 import cats.data.{EitherT, NonEmptyChain}
 import cats.effect.IO
-import cats.effect.implicits.{genSpawnOps, genTemporalOps}
+import cats.effect.implicits.*
 import cats.syntax.all.*
 import io.circe.Codec
 import sttp.tapir.Schema
 import sttp.tapir.integ.cats.codec.schemaForNec
 
 import java.util.UUID
-import exam.{Exam, ExamDoesNotExist, ExamError, ExamId, ExamNotDraft, ExamService, ExamStatus, NotAnOwner, TeacherId}
+import exam.{Exam, ExamDoesNotExist, ExamError, ExamId, ExamNotDraft, ExamService, ExamStatus, NotAnOwner}
+import user.TeacherId
 import utils.DerivationConfiguration.given
 
 sealed trait QuestionError derives Codec, Schema
@@ -24,11 +25,21 @@ type AddQuestionError = ExamDoesNotExist | NotAnOwner | ExamNotDraft | QuestionF
 type DeleteQuestionError = ExamDoesNotExist | NotAnOwner | ExamNotDraft | QuestionNotFound
 
 class QuestionService(questionRepository: QuestionRepository, examService: ExamService):
+  def getQuestionById(questionId: QuestionId, examId: ExamId): IO[Either[ExamDoesNotExist | QuestionNotFound, Question]] =
+    (
+      EitherT(examService.findById(examId)) >>
+        EitherT(
+          questionRepository
+            .getQuestionById(questionId, examId)
+            .map(_.toRight(QuestionNotFound(questionId)))
+        )
+    ).value
+
   def getQuestionsForExam(userId: UUID, examId: ExamId): IO[Either[ExamError, List[Question]]] =
     val result: EitherT[IO, ExamError, List[Question]] = for
       exam <- EitherT(examService.findById(examId))
       _ <- examService.checkPermissions(exam, TeacherId(userId))
-      questions <- EitherT.liftF(questionRepository.getForExam(examId))
+      questions <- EitherT.liftF(questionRepository.getQuestionsByExamId(examId))
     yield questions
 
     result.value

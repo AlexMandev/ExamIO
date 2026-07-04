@@ -1,0 +1,24 @@
+*********************************
+          ANSWERS
+*********************************
+
+[] allow teacher access on getAnswer endpoint
+
+[x] check if exam is open
+
+[x] check if submission has not been submitted
+
+[x] handle mistmatch between question data type and answer data type
+
+[] might have some bug related to exams/submissions existing
+
+[] fix whatever is causing this nasty error when calling getAnswer and clearAnswer
+
+java.lang.IllegalArgumentException: enum answer.AnswerType has no case with name: {"type": "ShortAnswer", "answer": "fo4235"}
+
+*********************************
+          QUESTIONS
+*********************************
+
+[] refactor getQuestionsForExam to work for both students and teachers
+   but apply the correct validation depending on the role

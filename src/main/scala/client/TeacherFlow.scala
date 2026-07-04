@@ -4,13 +4,12 @@ import cats.effect.IO
 import cats.syntax.all.*
 import exam.{
   Exam,
-  ExamCannotBeClosed,
-  ExamCannotBeOpened,
   ExamDoesNotExist,
   ExamForm,
   ExamFormError,
   ExamFormValidationError,
   ExamId,
+  ExamStatusMismatch,
   InvalidDescriptionError,
   InvalidNameError,
   InvalidTimeLimitError,
@@ -173,7 +172,7 @@ class TeacherFlow(client: ExamIOApiClient, token: String):
       data <- typeCmd match
         case "1" => collectMultipleChoiceData
         case "2" => collectTrueFalseData
-        case "3" => IO.pure(ShortAnswerData())
+        case "3" => collectShortAnswerData
         case _ => IO.println("Invalid type.") >> collectQuestionData
     yield data
 
@@ -183,13 +182,17 @@ class TeacherFlow(client: ExamIOApiClient, token: String):
       options <- collectOptions(List.empty)
       _ <- IO.println(options.zipWithIndex.map { case (opt, i) => s"  ${i + 1}. $opt" }.mkString("\n"))
       idx <- promptForInt("Correct option number: ").map(_ - 1)
-    yield MultipleChoiceData(options, idx)
+    yield MultipleChoiceData(options, Set(idx))
 
   private def collectOptions(acc: List[String]): IO[List[String]] =
     promptForString(s"Option ${acc.length + 1}: ").flatMap: input =>
       if input.isBlank && acc.length >= 2 then IO.pure(acc)
       else if input.isBlank then IO.println("Need at least 2 options.") >> collectOptions(acc)
       else collectOptions(acc :+ input.trim)
+
+  private def collectShortAnswerData: IO[QuestionData] =
+    for limit <- promptForInt("Set a character limit for the answer: ")
+    yield ShortAnswerData(limit)
 
   private def collectTrueFalseData: IO[QuestionData] =
     promptForString("Correct answer (true/false): ").flatMap: input =>
@@ -244,7 +247,7 @@ class TeacherFlow(client: ExamIOApiClient, token: String):
         {
           case ExamDoesNotExist(_) => IO.println("Exam not found.")
           case NotAnOwner(_, _) => IO.println("You don't own this exam.")
-          case ExamCannotBeOpened(_, s) => IO.println(s"Cannot open: exam is $s.")
+          case ExamStatusMismatch(_, msg) => IO.println(msg)
           case other => IO.println(s"Error: $other")
         },
         _ => IO.println("Exam opened successfully!")
@@ -259,7 +262,7 @@ class TeacherFlow(client: ExamIOApiClient, token: String):
         {
           case ExamDoesNotExist(_) => IO.println("Exam not found.")
           case NotAnOwner(_, _) => IO.println("You don't own this exam.")
-          case ExamCannotBeClosed(_, s) => IO.println(s"Cannot close: exam is $s.")
+          case ExamStatusMismatch(_, msg) => IO.println(msg)
           case other => IO.println(s"Error: $other")
         },
         _ => IO.println("Exam closed successfully!")
