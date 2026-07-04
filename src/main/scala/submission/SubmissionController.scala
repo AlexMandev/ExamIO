@@ -9,11 +9,11 @@ import user.StudentId
 class SubmissionController(submissionService: SubmissionService, authenticationService: AuthenticationService):
   import authenticationService.*
 
-  def createSubmission = SubmissionEndpoint.createSubmissionEndpoint.authenticate.serverLogic {
-    user => examId => submissionService.createSubmission(SubmissionForm(examId, StudentId(user.id)))
+  def createSubmission = SubmissionEndpoints.createSubmissionEndpoint.authenticate.serverLogic { user => examId =>
+    submissionService.createSubmission(SubmissionForm(examId, StudentId(user.id)))
   }
 
-  def finishSubmission = SubmissionEndpoint.finishSubmissionEndpoint.authenticate.serverLogic {
+  def finishSubmission = SubmissionEndpoints.finishSubmissionEndpoint.authenticate.serverLogic {
     user => (examId, submissionId) =>
       submissionService.finishSubmission(StudentId(user.id), submissionId, examId)
   }

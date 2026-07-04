@@ -36,16 +36,17 @@ object AnswerData:
 extension (answerData: AnswerData)
   def toType: AnswerType =
     answerData match
-      case _: TrueFalse      => AnswerType.TrueFalse
+      case _: TrueFalse => AnswerType.TrueFalse
       case _: MultipleChoice => AnswerType.MultipleChoice
-      case _: ShortAnswer    => AnswerType.ShortAnswer
+      case _: ShortAnswer => AnswerType.ShortAnswer
 
 case class Answer(
   questionId: QuestionId,
   submissionId: SubmissionId,
   answerType: AnswerType,
   data: AnswerData
-) derives Codec, Schema
+) derives Codec,
+      Schema
 
 extension (answer: Answer)
   def matchType(question: Question): Boolean =

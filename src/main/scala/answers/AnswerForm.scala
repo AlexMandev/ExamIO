@@ -13,7 +13,8 @@ type AnswerValidation[A] = ValidatedNec[AnswerFormError, A]
 
 case class AnswerForm(
   answerData: AnswerData
-) derives Codec, Schema
+) derives Codec,
+      Schema
 
 object AnswerForm:
   def validate(answerForm: AnswerForm, answerValidationCtx: AnswerValidationContext): AnswerValidation[AnswerForm] =
@@ -29,7 +30,7 @@ object AnswerForm:
 
         case ans => ans.validNec
     )
-    .map(AnswerForm.apply)
+      .map(AnswerForm.apply)
 
   def validateOptionIndices(indices: Set[Int], optionsCount: Int): AnswerValidation[Set[Int]] =
     val invalidIndices = indices.filter(i => i < 0 || i >= optionsCount)
@@ -38,7 +39,7 @@ object AnswerForm:
       case None => indices.validNec
       case Some(invalid) => InvalidOptionIndices(invalid).invalidNec
 
-  def validateShortAnswerLimit(answer: String, limit: Int): AnswerValidation[String] = 
+  def validateShortAnswerLimit(answer: String, limit: Int): AnswerValidation[String] =
     if answer.length <= limit then answer.validNec
     else ShortAnswerExceedsLimit(limit).invalidNec
 

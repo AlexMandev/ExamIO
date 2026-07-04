@@ -41,11 +41,13 @@ case class Submission(
   studentId: StudentId,
   startedAt: Instant,
   finishedAt: Option[Instant],
-  status: SubmissionStatus,
-) derives Codec, Schema
+  status: SubmissionStatus
+) derives Codec,
+      Schema
 
 case class NewSubmission(
   id: SubmissionId,
   examId: ExamId,
   studentId: StudentId
-) derives Codec, Schema
+) derives Codec,
+      Schema

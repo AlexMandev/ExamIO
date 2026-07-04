@@ -5,29 +5,32 @@ import sttp.tapir.generic.auto.*
 import sttp.tapir.json.circe.jsonBody
 import sttp.tapir.integ.cats.codec.*
 import sttp.model.StatusCode
-import sttp.model.StatusCode.{Created, NotFound, BadRequest, Conflict}
+import sttp.model.StatusCode.{Created, NotFound, BadRequest, Conflict, Forbidden}
 
 import infrastructure.ExamIOEndpoints.{secure, apiBaseEndpoint}
 
 import utils.jsonBodyTypedError
 import user.UserRole
 import question.{QuestionId, QuestionNotFound}
-import exam.{ExamId, ExamDoesNotExist, ExamCannotBeOpened}
-import submission.{SubmissionId, SubmissionDoesNotExist, AlreadySubmitted}
+import exam.{ExamId, ExamDoesNotExist, ExamStatusMismatch}
+import submission.{SubmissionId, SubmissionDoesNotExist, AlreadySubmitted, NotSubmissionOwner}
 
-object AnswerEndpoint:
+object AnswerEndpoints:
   private val answerBaseEndpoint = apiBaseEndpoint
     .in("exams" / path[ExamId]("examId"))
     .in("submissions" / path[SubmissionId]("submissionId"))
-    .in("answers" / path[QuestionId]("questionId")).tag("Answers")
+    .in("answers" / path[QuestionId]("questionId"))
+    .tag("Answers")
 
   def getAnswerEndpoint = answerBaseEndpoint
     // FIX: this probably won't allow for the teacher to access answers
-    .secure(UserRole.STUDENT,
+    .secure(
+      UserRole.STUDENT,
       oneOf[AnswerServiceError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),
+        oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotSubmissionOwner])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[AnswerDoesNotExist]))
       )
     )
@@ -35,14 +38,15 @@ object AnswerEndpoint:
     .get
 
   def addAnswerEndpoint = answerBaseEndpoint
-    .secure(UserRole.STUDENT,
+    .secure(
+      UserRole.STUDENT,
       oneOf[AnswerServiceError](
-
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),
+        oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotSubmissionOwner])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[AnswerDoesNotExist])),
-        oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[ExamCannotBeOpened])),
+        oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[ExamStatusMismatch])),
         oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[AlreadySubmitted])),
         oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[AnswerTypeMismatch])),
         oneOfVariant(statusCode(BadRequest).and(jsonBodyTypedError[AnswerFormValidationError]))
@@ -53,11 +57,13 @@ object AnswerEndpoint:
     .post
 
   def clearAnswerEndpoint = answerBaseEndpoint
-    .secure(UserRole.STUDENT,
+    .secure(
+      UserRole.STUDENT,
       oneOf[AnswerServiceError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),
+        oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotSubmissionOwner])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[AnswerDoesNotExist]))
       )
     )

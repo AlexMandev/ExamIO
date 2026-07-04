@@ -8,7 +8,8 @@ import question.{Question, QuestionData, TrueFalseData, MultipleChoiceData, Shor
 case class AnswerValidationContext(
   multipleChoiceOptionsCount: Int,
   shortAnswerLimit: Int
-) derives Codec, Schema
+) derives Codec,
+      Schema
 
 object AnswerValidationContext:
   def fromQuestion(question: Question): AnswerValidationContext =

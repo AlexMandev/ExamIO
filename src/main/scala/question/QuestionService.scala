@@ -2,7 +2,7 @@ package question
 
 import cats.data.{EitherT, NonEmptyChain}
 import cats.effect.IO
-import cats.effect.implicits.{genSpawnOps, genTemporalOps}
+import cats.effect.implicits.*
 import cats.syntax.all.*
 import io.circe.Codec
 import sttp.tapir.Schema
@@ -25,13 +25,15 @@ type AddQuestionError = ExamDoesNotExist | NotAnOwner | ExamNotDraft | QuestionF
 type DeleteQuestionError = ExamDoesNotExist | NotAnOwner | ExamNotDraft | QuestionNotFound
 
 class QuestionService(questionRepository: QuestionRepository, examService: ExamService):
-  def getQuestionById(questionId: QuestionId, examId: ExamId): IO[Either[ExamError | QuestionError, Question]] =
+  def getQuestionById(questionId: QuestionId, examId: ExamId): IO[Either[ExamDoesNotExist | QuestionNotFound, Question]] =
     (
       EitherT(examService.findById(examId)) >>
-        EitherT(questionRepository.getQuestionById(questionId)
-          .map(_.toRight(QuestionNotFound(questionId))))
-    )
-    .value
+        EitherT(
+          questionRepository
+            .getQuestionById(questionId, examId)
+            .map(_.toRight(QuestionNotFound(questionId)))
+        )
+    ).value
 
   def getQuestionsForExam(userId: UUID, examId: ExamId): IO[Either[ExamError, List[Question]]] =
     val result: EitherT[IO, ExamError, List[Question]] = for

@@ -13,7 +13,8 @@ case class SubmissionModule(
 )
 
 object SubmissionModule:
-  def apply(dbTransactor: DBTransactor, examService: ExamService, authenticationService: AuthenticationService): Resource[IO, SubmissionModule] =
+  def apply(dbTransactor: DBTransactor, examService: ExamService, authenticationService: AuthenticationService)
+    : Resource[IO, SubmissionModule] =
     val submissionRepository = SubmissionRepository(dbTransactor)
     val submissionService = SubmissionService(submissionRepository, examService)
     val submissionController = SubmissionController(submissionService, authenticationService)

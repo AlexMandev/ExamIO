@@ -32,9 +32,7 @@ class AnswerRepository(dbTransactor: DBTransactor):
       VALUES (${answer.questionId}, ${answer.submissionId}, ${answer.data.asJson})
       ON CONFLICT (question_id, submission_id)
       DO UPDATE SET data = EXCLUDED.data
-    """
-      .update
-      .run
+    """.update.run
       .transact(dbTransactor)
       .as(answer)
 
@@ -42,8 +40,6 @@ class AnswerRepository(dbTransactor: DBTransactor):
     sql"""
         DELETE FROM answers
         WHERE question_id = $questionId AND submission_id = $submissionId
-      """
-      .update
-      .run
+      """.update.run
       .transact(dbTransactor)
       .void

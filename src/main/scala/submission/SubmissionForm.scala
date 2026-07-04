@@ -9,4 +9,5 @@ import exam.ExamId
 case class SubmissionForm(
   examId: ExamId,
   studentId: StudentId
-) derives Codec, Schema
+) derives Codec,
+      Schema

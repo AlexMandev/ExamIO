@@ -26,10 +26,10 @@ class QuestionRepository(dbTransactor: DBTransactor):
       .transact(dbTransactor)
       .as(q)
 
-  def getQuestionById(questionId: QuestionId): IO[Option[Question]] =
+  def getQuestionById(questionId: QuestionId, examId: ExamId): IO[Option[Question]] =
     sql"""
         SELECT * FROM questions
-        WHERE id = $questionId
+        WHERE id = $questionId AND exam_id = $examId
       """
       .query[Question]
       .option
@@ -69,6 +69,4 @@ class QuestionRepository(dbTransactor: DBTransactor):
     sql"""
         UPDATE questions SET position = position - 1
         WHERE exam_id = $examId AND position > $position"
-      """
-      .update
-      .run
+      """.update.run
