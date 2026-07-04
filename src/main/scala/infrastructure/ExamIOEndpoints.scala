@@ -30,8 +30,9 @@ object ExamIOEndpoints:
         .map(r => securedEndpoint.attribute(userRoleKey, r))
         .getOrElse(securedEndpoint)
 
-    def secure[F](role: UserRole, domainErrors: EndpointOutput[F]): Endpoint[String, I, AuthenticationError | F, O, R] =
-      endpoint
+    def secure[F](maybeRole: Option[UserRole], domainErrors: EndpointOutput[F])
+      : Endpoint[String, I, AuthenticationError | F, O, R] =
+      val securedEndpoint = endpoint
         .securityIn(auth.bearer[String]())
         .errorOut(
           oneOf[AuthenticationError | F](
@@ -40,4 +41,7 @@ object ExamIOEndpoints:
             oneOfDefaultVariant(domainErrors)
           )
         )
-        .attribute(userRoleKey, role)
+
+      maybeRole
+        .map(r => securedEndpoint.attribute(userRoleKey, r))
+        .getOrElse(securedEndpoint)
