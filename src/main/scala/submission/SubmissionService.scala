@@ -94,6 +94,9 @@ class SubmissionService(submissionRepository: SubmissionRepository, examService:
   def getResult(examId: ExamId, submissionId: SubmissionId, studentId: StudentId): IO[Either[ExamError | SubmissionError, Submission]] =
     getSubmissionById(submissionId, examId, studentId)
 
+  def getFinishedSubmissions(studentId: StudentId): IO[List[Submission]] =
+    submissionRepository.getFinishedSubmissionsForStudent(studentId)
+
   private def checkForAnotherCreatedSubmission(examId: ExamId, studentId: StudentId)
     : IO[Either[SubmissionAlreadyExists, Unit]] =
     for

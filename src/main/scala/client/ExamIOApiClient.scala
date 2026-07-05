@@ -53,6 +53,9 @@ class ExamIOApiClient(client: ApiClient):
   def listOpenExams(token: String): IO[Either[AuthenticationError, List[Exam]]] =
     client.secureRequest(ExamEndpoints.getOpenExamsEndpoint)(token)(())
 
+  def getMySubmissions(token: String): IO[Either[AuthenticationError, List[Submission]]] =
+    client.secureRequest(SubmissionEndpoints.getMySubmissionsEndpoint)(token)(())
+
   def createSubmission(examId: ExamId, token: String)
     : IO[Either[AuthenticationError | ExamError | SubmissionError, Submission]] =
     client.secureRequest(SubmissionEndpoints.createSubmissionEndpoint)(token)(examId)

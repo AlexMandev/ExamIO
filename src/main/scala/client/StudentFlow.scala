@@ -10,7 +10,7 @@ import question.{
   PublicShortAnswerData,
   PublicTrueFalseData
 }
-import submission.{Submission, SubmissionAlreadyExists, SubmissionId, SubmissionNotInProgress, SubmissionStatus}
+import submission.{AlreadySubmitted, Submission, SubmissionAlreadyExists, SubmissionId, SubmissionNotInProgress, SubmissionStatus}
 import answers.{
   AnswerData,
   AnswerDoesNotExist,
@@ -36,7 +36,8 @@ class StudentFlow(client: ExamIOApiClient, token: String):
         command <- promptForString("> ").map(_.trim)
         _ <- command match
           case "1" => browseOpenExamsFlow >> run()
-          case "2" => IO.println("Logged out.") >> pressEnterToContinue
+          case "2" => myFinishedSubmissionsFlow >> run()
+          case "3" => IO.println("Logged out.") >> pressEnterToContinue
           case _ => run()
       yield (),
       retry = run()
@@ -46,9 +47,31 @@ class StudentFlow(client: ExamIOApiClient, token: String):
     IO.println(
       """|=== Menu ===
          |1. Browse open exams
-         |2. Logout
+         |2. My finished exams
+         |3. Logout
          |""".stripMargin
     )
+
+  private def myFinishedSubmissionsFlow: IO[Unit] =
+    for
+      _ <- clearConsole
+      result <- client.getMySubmissions(token)
+      _ <- result.fold(
+        err => IO.println(s"Error: $err"),
+        submissions =>
+          if submissions.isEmpty then IO.println("No finished exams yet.")
+          else IO.println(displayFinishedSubmissionsList(submissions))
+      )
+      _ <- pressEnterToContinue
+    yield ()
+
+  private def displayFinishedSubmissionsList(submissions: List[Submission]): String =
+    submissions.zipWithIndex
+      .map { case (s, i) =>
+        val gradeInfo = s.score.fold("Not graded yet")(score => s"Graded - $score pts")
+        s"${i + 1}. $gradeInfo"
+      }
+      .mkString("\n")
 
   private def browseOpenExamsFlow: IO[Unit] =
     for
@@ -109,11 +132,16 @@ class StudentFlow(client: ExamIOApiClient, token: String):
       _ <- displaySubmissionMenu(exam)
       command <- promptForString("> ").map(_.trim)
       _ <- command match
-        case "1" => viewQuestionsFlow(exam, submission) >> submissionMenu(exam, submission)
+        case "1" => viewQuestionsFlow(exam, submission) >> refreshSubmissionMenu(exam, submission)
         case "2" => finishSubmissionFlow(exam, submission)
         case "3" => ().pure[IO]
         case _ => submissionMenu(exam, submission)
     yield ()
+
+  private def refreshSubmissionMenu(exam: Exam, submission: Submission): IO[Unit] =
+    client.getResult(exam.id, submission.id, token).flatMap:
+      case Right(refreshed) => submissionMenu(exam, refreshed)
+      case Left(err) => IO.println(s"Error: $err") >> pressEnterToContinue
 
   private def displaySubmissionMenu(exam: Exam): IO[Unit] =
     IO.println(
@@ -234,6 +262,7 @@ class StudentFlow(client: ExamIOApiClient, token: String):
       {
         case AnswerFormValidationError(errs) =>
           "Validation errors:\n" + errs.toList.map(e => s"  - ${formatAnswerFormError(e)}").mkString("\n")
+        case AlreadySubmitted(_, _, _) => "This exam has already been submitted — no more changes allowed."
         case other => s"Failed: $other"
       },
       _ => "Answer saved."

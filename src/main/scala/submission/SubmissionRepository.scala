@@ -86,6 +86,12 @@ class SubmissionRepository(dbTransactor: DBTransactor):
          WHERE exam_id = ${examId}
          """.query[Submission].to[List].transact(dbTransactor)
 
+  def getFinishedSubmissionsForStudent(studentId: StudentId): IO[List[Submission]] =
+    sql"""
+         SELECT * FROM submissions
+         WHERE student_id = $studentId AND status != 'InProgress'
+         """.query[Submission].to[List].transact(dbTransactor)
+
   def gradeSubmission(submissionId: SubmissionId, score: BigDecimal): IO[Unit] =
     sql"""
         UPDATE submissions
