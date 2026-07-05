@@ -24,13 +24,14 @@ object AnswerEndpoints:
 
   def getAnswerEndpoint = answerBaseEndpoint
     .secure(
-      Option(UserRole.STUDENT),
+      None,
       oneOf[AnswerServiceError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionNotInExam])),
         oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotSubmissionOwner])),
+        oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotAnOwner])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[AnswerDoesNotExist]))
       )
     )

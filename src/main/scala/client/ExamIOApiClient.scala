@@ -1,11 +1,23 @@
 package client
 
 import cats.effect.IO
-import exam.{CloseExamError, Exam, ExamEndpoints, ExamError, ExamForm, ExamFormValidationError, ExamId, OpenExamError}
+import exam.{
+  CloseExamError,
+  Exam,
+  ExamDoesNotExist,
+  ExamEndpoints,
+  ExamError,
+  ExamForm,
+  ExamFormValidationError,
+  ExamId,
+  ExamStatusMismatch,
+  NotAnOwner,
+  OpenExamError
+}
 import infrastructure.auth.AuthenticationError
-import question.{AddQuestionError, DeleteQuestionError, PublicQuestion, Question, QuestionEndpoints, QuestionForm, QuestionId}
+import question.{AddQuestionError, DeleteQuestionError, PublicQuestion, Question, QuestionEndpoints, QuestionForm, QuestionId, QuestionNotFound}
 import submission.{Submission, SubmissionEndpoints, SubmissionError, SubmissionId}
-import answers.{Answer, AnswerEndpoints, AnswerForm, AnswerServiceError}
+import answers.{Answer, AnswerDoesNotExist, AnswerEndpoints, AnswerForm, AnswerServiceError, GradeAnswerForm, InvalidPointsAwarded}
 import user.{LoginResponse, User, UserEndpoints, UserLoginForm, UserRegistrationError, UserRegistrationForm}
 
 class ExamIOApiClient(client: ApiClient):
@@ -68,3 +80,15 @@ class ExamIOApiClient(client: ApiClient):
   def clearAnswer(examId: ExamId, submissionId: SubmissionId, questionId: QuestionId, token: String)
     : IO[Either[AuthenticationError | AnswerServiceError, Unit]] =
     client.secureRequest(AnswerEndpoints.clearAnswerEndpoint)(token)(examId, submissionId, questionId)
+
+  def getResults(examId: ExamId, token: String): IO[Either[AuthenticationError | ExamError, List[Submission]]] =
+    client.secureRequest(SubmissionEndpoints.getResultsEndpoint)(token)(examId)
+
+  def gradeAnswer(examId: ExamId, submissionId: SubmissionId, questionId: QuestionId, form: GradeAnswerForm, token: String): IO[
+    Either[
+      AuthenticationError | ExamDoesNotExist | NotAnOwner | ExamStatusMismatch | QuestionNotFound | AnswerDoesNotExist |
+        InvalidPointsAwarded,
+      Answer
+    ]
+  ] =
+    client.secureRequest(AnswerEndpoints.gradeAnswerEndpoint)(token)(examId, submissionId, questionId, form)

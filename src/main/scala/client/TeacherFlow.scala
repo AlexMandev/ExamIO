@@ -25,9 +25,12 @@ import question.{
   QuestionForm,
   QuestionFormError,
   QuestionFormValidationError,
+  QuestionType,
   ShortAnswerData,
   TrueFalseData
 }
+import submission.{Submission, SubmissionId}
+import answers.{AnswerData, GradeAnswerForm, MultipleChoice, ShortAnswer, TrueFalse}
 import CommonFlow.*
 import client.utils.OptionUtils.*
 
@@ -116,7 +119,9 @@ class TeacherFlow(client: ExamIOApiClient, token: String):
         case "3" => deleteQuestionFlow(exam.id).flatMap(msg => examMenu(exam, Option.when(msg.nonEmpty)(msg)))
         case "4" => openExamFlow(exam.id)
         case "5" => closeExamFlow(exam.id)
-        case "6" => ().pure[IO]
+        case "6" => viewResultsFlow(exam.id) >> examMenu(exam)
+        case "7" => gradeShortAnswersFlow(exam.id) >> examMenu(exam)
+        case "8" => ().pure[IO]
         case _ => examMenu(exam)
     yield ()
 
@@ -128,7 +133,9 @@ class TeacherFlow(client: ExamIOApiClient, token: String):
           |3. Delete question
           |4. Open exam
           |5. Close exam
-          |6. Back
+          |6. View results
+          |7. Grade short answers
+          |8. Back
           |""".stripMargin
     )
 
@@ -272,3 +279,99 @@ class TeacherFlow(client: ExamIOApiClient, token: String):
       )
       _ <- pressEnterToContinue
     yield ()
+
+  private def viewResultsFlow(examId: ExamId): IO[Unit] =
+    for
+      _ <- clearConsole
+      result <- client.getResults(examId, token)
+      _ <- result.fold(
+        err => IO.println(s"Error: $err"),
+        submissions =>
+          if submissions.isEmpty then IO.println("No submissions yet.")
+          else IO.println(displaySubmissionsList(submissions))
+      )
+      _ <- pressEnterToContinue
+    yield ()
+
+  private def displaySubmissionsList(submissions: List[Submission]): String =
+    submissions.zipWithIndex
+      .map { case (s, i) =>
+        s"${i + 1}. Student ${s.studentId.value} [${s.status}] - ${s.score.fold("Not graded yet")(sc => s"$sc pts")}"
+      }
+      .mkString("\n")
+
+  private def gradeShortAnswersFlow(examId: ExamId): IO[Unit] =
+    for
+      result <- client.getResults(examId, token)
+      _ <- result.fold(
+        err => IO.println(s"Error: $err") >> pressEnterToContinue,
+        submissions =>
+          if submissions.isEmpty then IO.println("No submissions yet.") >> pressEnterToContinue
+          else selectSubmissionToGrade(examId, submissions)
+      )
+    yield ()
+
+  private def selectSubmissionToGrade(examId: ExamId, submissions: List[Submission]): IO[Unit] =
+    for
+      _ <- clearConsole
+      _ <- IO.println("=== Select Submission ===")
+      _ <- IO.println(displaySubmissionsList(submissions))
+      _ <- IO.println("") >> IO.println("0. Back")
+      input <- promptForString("> ").map(_.trim)
+      _ <- input.toIntOption match
+        case Some(0) => ().pure[IO]
+        case Some(n) if n >= 1 && n <= submissions.length =>
+          selectQuestionToGrade(examId, submissions(n - 1)) >> selectSubmissionToGrade(examId, submissions)
+        case _ => selectSubmissionToGrade(examId, submissions)
+    yield ()
+
+  private def selectQuestionToGrade(examId: ExamId, submission: Submission): IO[Unit] =
+    for
+      result <- client.getQuestions(examId, token)
+      _ <- result.fold(
+        err => IO.println(s"Error: $err") >> pressEnterToContinue,
+        questions =>
+          val shortAnswerQuestions = questions.filter(_.questionType == QuestionType.ShortAnswer)
+          if shortAnswerQuestions.isEmpty then IO.println("No short-answer questions in this exam.") >> pressEnterToContinue
+          else gradeQuestionMenu(examId, submission.id, shortAnswerQuestions)
+      )
+    yield ()
+
+  private def gradeQuestionMenu(examId: ExamId, submissionId: SubmissionId, questions: List[Question]): IO[Unit] =
+    for
+      _ <- clearConsole
+      _ <- IO.println("=== Select Question to Grade ===")
+      _ <- IO.println(
+        questions.zipWithIndex.map { case (q, i) => s"${i + 1}. ${q.questionText} (${q.points} pts)" }.mkString("\n")
+      )
+      _ <- IO.println("") >> IO.println("0. Back")
+      input <- promptForString("> ").map(_.trim)
+      _ <- input.toIntOption match
+        case Some(0) => ().pure[IO]
+        case Some(n) if n >= 1 && n <= questions.length =>
+          gradeAnswerFlow(examId, submissionId, questions(n - 1)).flatMap(msg => IO.println(msg) >> pressEnterToContinue)
+        case _ => gradeQuestionMenu(examId, submissionId, questions)
+    yield ()
+
+  private def gradeAnswerFlow(examId: ExamId, submissionId: SubmissionId, question: Question): IO[String] =
+    for
+      _ <- clearConsole
+      answerResult <- client.getAnswer(examId, submissionId, question.id, token)
+      msg <- answerResult match
+        case Left(err) => IO.pure(s"Error: $err")
+        case Right(answer) =>
+          for
+            _ <- IO.println(s"=== ${question.questionText} ===")
+            _ <- IO.println(s"Answer: ${formatAnswerData(answer.data)}")
+            points <- promptForDecimal(s"Points to award (0 - ${question.points}): ")
+            result <- client.gradeAnswer(examId, submissionId, question.id, GradeAnswerForm(points), token)
+          yield result.fold(
+            err => s"Error: $err",
+            _ => "Answer graded."
+          )
+    yield msg
+
+  private def formatAnswerData(data: AnswerData): String = data match
+    case MultipleChoice(idx) => s"Option ${idx + 1}"
+    case TrueFalse(answer) => answer.map(_.toString).getOrElse("none")
+    case ShortAnswer(answer) => answer

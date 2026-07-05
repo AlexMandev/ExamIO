@@ -32,7 +32,7 @@ class ExamService(examRepository: ExamRepository):
       .getExamById(examId)
       .map(_.toRight(ExamDoesNotExist(examId)))
 
-  def checkPermissions(exam: Exam, teacherId: TeacherId): EitherT[IO, NotAnOwner, Exam] =
+  def checkPermissions[E >: NotAnOwner](exam: Exam, teacherId: TeacherId): EitherT[IO, E, Exam] =
     EitherT.fromEither(
       if exam.teacherId == teacherId
       then exam.asRight
