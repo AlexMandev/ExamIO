@@ -1,4 +1,14 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/36PHsRYL)
-краен срок: 05.07.2026
----
-Добавете кратко описание на проекта...
+# examio
+
+ExamIO is a RESTful backend API and CLI client for managing online examinations that supports
+teacher and student roles, timed submissions, automatic submission on timeout,
+and submission grading.
+
+## features
+
+- jwt-based authentication for student and teacher roles
+- role-based access control for all operations
+- automatic submissions after exam time limit has elapsed
+- various question types: multiple choice, true/false, short answer
+- automatic grading of closed-ended questions (or true/false)
+- manual grading of open-ended questions
