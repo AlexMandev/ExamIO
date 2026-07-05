@@ -24,6 +24,9 @@ class ExamService(examRepository: ExamRepository):
 
   def getExamsBy(teacherId: TeacherId): IO[List[Exam]] = examRepository.getExamsBy(teacherId)
 
+  def getOpenExams: IO[List[Exam]] =
+    examRepository.getOpenExams
+
   def findById(examId: ExamId): IO[Either[ExamDoesNotExist, Exam]] =
     examRepository
       .getExamById(examId)
@@ -56,6 +59,11 @@ class ExamService(examRepository: ExamRepository):
     : EitherT[IO, ExamDoesNotExist | ExamStatusMismatch, Exam] =
     EitherT(findById(examId))
       .ensureOr(exam => ExamStatusMismatch(exam.id, message))(_.status == expectedStatus)
+
+  def fetchAndValidateExamByStatuses(examId: ExamId, expectedStatuses: List[ExamStatus], message: String)
+    : EitherT[IO, ExamDoesNotExist | ExamStatusMismatch, Exam] =
+    EitherT(findById(examId))
+      .ensureOr(exam => ExamStatusMismatch(exam.id, message))(e => expectedStatuses.exists(_ == e.status))
 
   private def createNewExam(form: ExamForm, teacherId: TeacherId) = for
     id <- IO.pure(UUID.randomUUID())

@@ -12,6 +12,9 @@ import java.util.UUID
 import exam.{Exam, ExamDoesNotExist, ExamError, ExamId, ExamNotDraft, ExamService, ExamStatus, NotAnOwner}
 import user.TeacherId
 import utils.DerivationConfiguration.given
+import submission.{SubmissionId, SubmissionError, SubmissionService}
+
+import user.StudentId
 
 sealed trait QuestionError derives Codec, Schema
 
@@ -24,7 +27,7 @@ case class QuestionNotFound(questionId: QuestionId) extends QuestionError derive
 type AddQuestionError = ExamDoesNotExist | NotAnOwner | ExamNotDraft | QuestionFormValidationError
 type DeleteQuestionError = ExamDoesNotExist | NotAnOwner | ExamNotDraft | QuestionNotFound
 
-class QuestionService(questionRepository: QuestionRepository, examService: ExamService):
+class QuestionService(questionRepository: QuestionRepository, submissionService: SubmissionService, examService: ExamService):
   def getQuestionById(questionId: QuestionId, examId: ExamId): IO[Either[ExamDoesNotExist | QuestionNotFound, Question]] =
     (
       EitherT(examService.findById(examId)) >>
@@ -43,6 +46,19 @@ class QuestionService(questionRepository: QuestionRepository, examService: ExamS
     yield questions
 
     result.value
+
+  def getStudentQuestions(studentId: StudentId, examId: ExamId, submissionId: SubmissionId): IO[Either[ExamError | SubmissionError, List[PublicQuestion]]] =
+    val validStatuses = List(ExamStatus.OPEN, ExamStatus.CLOSED, ExamStatus.GRADED)
+
+    val result: EitherT[IO, ExamError | SubmissionError, List[PublicQuestion]] =
+      for
+        exam <- examService.fetchAndValidateExamByStatuses(examId, validStatuses, "Exam is not currently visible")
+        submission <- EitherT(submissionService.getSubmissionById(submissionId, examId, studentId))
+        questions <- EitherT.liftF(questionRepository.getQuestionsByExamOrderedByPosition(examId))
+      yield questions.map(_.toPublic)
+
+    result.value
+
 
   def addQuestion(
     form: QuestionForm,

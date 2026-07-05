@@ -35,6 +35,15 @@ class ExamRepository(dbTransactor: DBTransactor):
       .option
       .transact(dbTransactor)
 
+  def getOpenExams: IO[List[Exam]] =
+    sql"""
+        SELECT * FROM EXAMS
+        WHERE status = 'open'
+      """
+      .query[Exam]
+      .to[List]
+      .transact(dbTransactor)
+
   def openExamById(examId: ExamId): IO[Unit] =
     sql"""
         UPDATE exams
