@@ -57,6 +57,11 @@ class ExamService(examRepository: ExamRepository):
     EitherT(findById(examId))
       .ensureOr(exam => ExamStatusMismatch(exam.id, message))(_.status == expectedStatus)
 
+  def fetchAndValidateExamByStatuses(examId: ExamId, expectedStatuses: List[ExamStatus], message: String)
+    : EitherT[IO, ExamDoesNotExist | ExamStatusMismatch, Exam] =
+    EitherT(findById(examId))
+      .ensureOr(exam => ExamStatusMismatch(exam.id, message))(e => expectedStatuses.exists(_ == e.status))
+
   private def createNewExam(form: ExamForm, teacherId: TeacherId) = for
     id <- IO.pure(UUID.randomUUID())
     createdExam <- examRepository.createExam(

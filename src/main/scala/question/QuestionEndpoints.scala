@@ -10,6 +10,7 @@ import user.UserRole.{STUDENT, TEACHER}
 import exam.{ExamDoesNotExist, ExamError, ExamId, ExamNotDraft, ExamStatusMismatch, NotAnOwner}
 import submission.{SubmissionId, SubmissionDoesNotExist, NotSubmissionOwner}
 import utils.jsonBodyTypedError
+import submission.SubmissionError
 
 object QuestionEndpoints:
   private val questionsBaseEndpoint = apiBaseEndpoint
@@ -31,7 +32,7 @@ object QuestionEndpoints:
     .in(path[SubmissionId]("submissionId"))
     .secure(
       Some(STUDENT),
-      oneOf[ExamDoesNotExist | ExamStatusMismatch | SubmissionDoesNotExist | NotSubmissionOwner](
+      oneOf[ExamError | SubmissionError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[ExamStatusMismatch])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),
