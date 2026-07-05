@@ -31,7 +31,7 @@ object CommonFlow:
 
   private def startStudentFlow(client: ExamIOApiClient): IO[Unit] =
     loginFlow(client).flatMap:
-      case Some(LoginResponse(token, UserRole.STUDENT)) => StudentFlow(client, token).run
+      case Some(LoginResponse(token, UserRole.STUDENT)) => StudentFlow(client, token).run()
       case Some(_) => IO.println("This is not a student account.") >> pressEnterToContinue >> mainLoop(client, true)
       case None => pressEnterToContinue >> mainLoop(client, true)
 
