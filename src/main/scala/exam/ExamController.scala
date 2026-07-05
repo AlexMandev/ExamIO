@@ -19,6 +19,10 @@ class ExamController(examService: ExamService, gradingService: GradingService, a
     examService.getExamsBy(TeacherId(user.id)).map(_.asRight)
   }
 
+  def getOpenExams = ExamEndpoints.getOpenExamsEndpoint.authenticate.serverLogic { _ => _ =>
+    examService.getOpenExams.map(_.asRight)
+  }
+
   def openExam = ExamEndpoints.openExamEndpoint.authenticate.serverLogic { user => examId =>
     examService.openExam(examId, TeacherId(user.id))
   }

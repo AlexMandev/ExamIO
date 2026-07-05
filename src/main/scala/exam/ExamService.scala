@@ -24,6 +24,9 @@ class ExamService(examRepository: ExamRepository):
 
   def getExamsBy(teacherId: TeacherId): IO[List[Exam]] = examRepository.getExamsBy(teacherId)
 
+  def getOpenExams: IO[List[Exam]] =
+    examRepository.getOpenExams
+
   def findById(examId: ExamId): IO[Either[ExamDoesNotExist, Exam]] =
     examRepository
       .getExamById(examId)
