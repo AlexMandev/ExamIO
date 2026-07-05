@@ -1,21 +1,10 @@
 package client
 
 import cats.effect.IO
-import exam.{
-  CloseExamError,
-  Exam,
-  ExamDoesNotExist,
-  ExamEndpoints,
-  ExamError,
-  ExamForm,
-  ExamFormValidationError,
-  ExamId,
-  ExamStatusMismatch,
-  OpenExamError
-}
+import exam.{CloseExamError, Exam, ExamEndpoints, ExamError, ExamForm, ExamFormValidationError, ExamId, OpenExamError}
 import infrastructure.auth.AuthenticationError
 import question.{AddQuestionError, DeleteQuestionError, PublicQuestion, Question, QuestionEndpoints, QuestionForm, QuestionId}
-import submission.{NotSubmissionOwner, Submission, SubmissionDoesNotExist, SubmissionEndpoints, SubmissionError, SubmissionId}
+import submission.{Submission, SubmissionEndpoints, SubmissionError, SubmissionId}
 import answers.{Answer, AnswerEndpoints, AnswerForm, AnswerServiceError}
 import user.{LoginResponse, User, UserEndpoints, UserLoginForm, UserRegistrationError, UserRegistrationForm}
 
@@ -61,14 +50,11 @@ class ExamIOApiClient(client: ApiClient):
     client.secureRequest(SubmissionEndpoints.finishSubmissionEndpoint)(token)(examId, submissionId)
 
   def getResult(examId: ExamId, submissionId: SubmissionId, token: String)
-    : IO[Either[AuthenticationError | ExamDoesNotExist | SubmissionDoesNotExist | NotSubmissionOwner, Submission]] =
+    : IO[Either[AuthenticationError | ExamError | SubmissionError, Submission]] =
     client.secureRequest(SubmissionEndpoints.getResultEndpoint)(token)(examId, submissionId)
 
-  def getStudentQuestions(examId: ExamId, submissionId: SubmissionId, token: String): IO[
-    Either[AuthenticationError | ExamDoesNotExist | ExamStatusMismatch | SubmissionDoesNotExist | NotSubmissionOwner, List[
-      PublicQuestion
-    ]]
-  ] =
+  def getStudentQuestions(examId: ExamId, submissionId: SubmissionId, token: String)
+    : IO[Either[AuthenticationError | ExamError | SubmissionError, List[PublicQuestion]]] =
     client.secureRequest(QuestionEndpoints.getStudentQuestionsEndpoint)(token)(examId, submissionId)
 
   def getAnswer(examId: ExamId, submissionId: SubmissionId, questionId: QuestionId, token: String)
