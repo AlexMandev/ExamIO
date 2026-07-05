@@ -42,7 +42,8 @@ case class Submission(
   startedAt: Instant,
   finishedAt: Option[Instant],
   status: SubmissionStatus,
-  score: Option[BigDecimal]
+  score: Option[BigDecimal],
+  deadline: Instant
 ) derives Codec,
       Schema
 

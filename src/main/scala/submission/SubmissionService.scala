@@ -25,6 +25,9 @@ class SubmissionService(submissionRepository: SubmissionRepository, examService:
       .ensureOr(sub => NotSubmissionOwner(studentId, sub.id))(_.studentId == studentId)
       .value
 
+  def autoSubmitPastDeadline: IO[List[Submission]] =
+    submissionRepository.autoSubmitPastDeadline
+
   def createSubmission(submissionForm: SubmissionForm): IO[Either[ExamError | SubmissionError, Submission]] =
     val result =
       for
@@ -38,16 +41,10 @@ class SubmissionService(submissionRepository: SubmissionRepository, examService:
 
         newSubmission = NewSubmission(SubmissionId(id), submissionForm.examId, submissionForm.studentId)
 
-        submission <- EitherT(submissionRepository.createSubmission(newSubmission))
+        submission <- EitherT(submissionRepository.createSubmission(newSubmission, exam.timeLimitMinutes))
       yield submission
 
     result.value
-
-  // 1. exam exists - validateExamStatus
-  // 2. exam is open - validateExamStatus
-  // 3. submission exists - getSubmission
-  // 4. submission has the correct studentId - getSubmission
-  // 5. the submission's status is 'InProgress'
 
   def finishSubmission(studentId: StudentId, submissionId: SubmissionId, examId: ExamId)
     : IO[Either[ExamError | SubmissionError, Submission]] =

@@ -1,0 +1,2 @@
+ALTER TABLE submissions
+ADD deadline TIMESTAMPTZ NOT NULL;
