@@ -23,4 +23,8 @@ class SubmissionController(submissionService: SubmissionService, authenticationS
     user => examId => submissionService.getResults(examId, TeacherId(user.id))
   }
 
+  def getResult = SubmissionEndpoints.getResultEndpoint.authenticate.serverLogic {
+    user => (examId, submissionId) => submissionService.getResult(examId, submissionId, StudentId(user.id))
+  }
+
   val endpoints: List[ServerEndpoint[Any, IO]] = List(createSubmission, finishSubmission)

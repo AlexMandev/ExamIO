@@ -17,14 +17,15 @@ import submission.{
   SubmissionDoesNotExist,
   NotSubmissionOwner,
   AlreadySubmitted,
-  SubmissionStatus
+  SubmissionStatus,
+  SubmissionNotInExam
 }
 import exam.{ExamId, ExamDoesNotExist, ExamStatusMismatch, ExamService, ExamStatus}
 import user.StudentId
 
 type AnswerServiceError =
   AnswerDoesNotExist | AnswerTypeMismatch | AnswerFormValidationError | QuestionNotFound | SubmissionDoesNotExist |
-    NotSubmissionOwner | AlreadySubmitted | ExamDoesNotExist | ExamStatusMismatch
+    SubmissionNotInExam | NotSubmissionOwner | AlreadySubmitted | ExamDoesNotExist | ExamStatusMismatch
 
 class AnswerService(
   answerRepository: AnswerRepository,
