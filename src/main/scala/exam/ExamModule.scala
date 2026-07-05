@@ -12,6 +12,7 @@ import submission.SubmissionRepository
 case class ExamModule(
   examRepository: ExamRepository,
   examService: ExamService,
+  gradingService: GradingService,
   endpoints: List[ServerEndpoint[Any, IO]]
 )
 
@@ -27,4 +28,4 @@ object ExamModule:
     )
     val examController = ExamController(examService, gradingService, authenticationService)
 
-    Resource.pure(ExamModule(examRepository, examService, examController.endpoints))
+    Resource.pure(ExamModule(examRepository, examService, gradingService, examController.endpoints))

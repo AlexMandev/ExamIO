@@ -14,7 +14,7 @@ import user.StudentId
 class SubmissionRepository(dbTransactor: DBTransactor):
   def createSubmission(newSubmission: NewSubmission, timeLimitInMinutes: Int): IO[Either[SubmissionError, Submission]] =
     sql"""
-        INSERT INTO submissions (id, exam_id, student_id, created_at, deadline)
+        INSERT INTO submissions (id, exam_id, student_id, started_at, deadline)
         VALUES (  ${newSubmission.id},
                   ${newSubmission.examId},
                   ${newSubmission.studentId},

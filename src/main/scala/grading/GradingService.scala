@@ -51,8 +51,9 @@ class GradingService(
               .ensure(ExamStatusMismatch(examId, "Exam is not closed"))(_.status == ExamStatus.CLOSED)
           question <-
             EitherT(questionRepository.getQuestionById(questionId, examId).map(_.toRight(QuestionNotFound(questionId))))
-              .ensure(QuestionNotFound(questionId))(q => q.points >= gradeAnswerForm.points && q.points >= 0)
-              .ensure(InvalidPointsAwarded(""))(_.points >= gradeAnswerForm.points)
+              .ensureOr(q => InvalidPointsAwarded(s"Points must be between 0 and ${q.points}"))(q =>
+                gradeAnswerForm.points >= 0 && gradeAnswerForm.points <= q.points
+              )
           answer <-
             EitherT(answerRepository.getAnswer(questionId, submissionId).map(_.toRight(AnswerDoesNotExist(questionId, submissionId))))
 
