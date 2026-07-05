@@ -8,8 +8,6 @@ import io.circe.Codec
 import sttp.tapir.Schema
 import sttp.tapir.integ.cats.codec.schemaForNec
 
-import java.util.UUID
-
 import question.{QuestionId, QuestionService, QuestionNotFound, QuestionType}
 import submission.{
   SubmissionId,
@@ -20,12 +18,13 @@ import submission.{
   SubmissionStatus,
   SubmissionNotInExam
 }
-import exam.{ExamId, ExamDoesNotExist, ExamStatusMismatch, ExamService, ExamStatus}
-import user.StudentId
+import exam.{ExamId, ExamDoesNotExist, ExamStatusMismatch, ExamService, ExamStatus, NotAnOwner}
+import user.{StudentId, TeacherId, UserRole}
+import infrastructure.auth.AuthenticatedUser
 
 type AnswerServiceError =
   AnswerDoesNotExist | AnswerTypeMismatch | AnswerFormValidationError | QuestionNotFound | SubmissionDoesNotExist |
-    SubmissionNotInExam | NotSubmissionOwner | AlreadySubmitted | ExamDoesNotExist | ExamStatusMismatch
+    SubmissionNotInExam | NotSubmissionOwner | AlreadySubmitted | ExamDoesNotExist | ExamStatusMismatch | NotAnOwner
 
 class AnswerService(
   answerRepository: AnswerRepository,
@@ -34,12 +33,12 @@ class AnswerService(
   examService: ExamService
 ):
 
-  def getAnswer(userId: UUID, questionId: QuestionId, submissionId: SubmissionId, examId: ExamId)
+  def getAnswer(user: AuthenticatedUser, questionId: QuestionId, submissionId: SubmissionId, examId: ExamId)
     : IO[Either[AnswerServiceError, Answer]] =
     val result: EitherT[IO, AnswerServiceError, Answer] =
       for
         _ <- EitherT(questionService.getQuestionById(questionId, examId))
-        _ <- EitherT(submissionService.getSubmissionById(submissionId, examId, StudentId(userId)))
+        _ <- checkSubmissionAccess(user, submissionId, examId)
 
         answer <- EitherT(
           answerRepository
@@ -49,6 +48,17 @@ class AnswerService(
       yield answer
 
     result.value
+
+  private def checkSubmissionAccess(user: AuthenticatedUser, submissionId: SubmissionId, examId: ExamId)
+    : EitherT[IO, AnswerServiceError, Unit] =
+    user.role match
+      case UserRole.STUDENT =>
+        EitherT(submissionService.getSubmissionById(submissionId, examId, StudentId(user.id))).void
+      case UserRole.TEACHER =>
+        for
+          exam <- EitherT(examService.findById(examId))
+          _ <- examService.checkPermissions(exam, TeacherId(user.id))
+        yield ()
 
   def addAnswer(
     studentId: StudentId,
@@ -63,7 +73,7 @@ class AnswerService(
     : IO[Either[AnswerServiceError, Unit]] =
     (
       for
-        _ <- EitherT(getAnswer(studentId.value, questionId, submissionId, examId))
+        _ <- EitherT(getAnswer(AuthenticatedUser(studentId.value, UserRole.STUDENT), questionId, submissionId, examId))
         _ <- EitherT.liftF(
           answerRepository.clearAnswer(questionId, submissionId)
         )

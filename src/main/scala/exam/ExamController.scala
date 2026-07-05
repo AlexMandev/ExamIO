@@ -36,4 +36,4 @@ class ExamController(examService: ExamService, gradingService: GradingService, a
     yield result
   }
 
-  val endpoints = List(createExam, getOwnExams, openExam, closeExam)
+  val endpoints = List(createExam, getOwnExams, getOpenExams, openExam, closeExam)

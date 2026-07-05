@@ -1,9 +1,23 @@
 package client
 
 import cats.effect.IO
-import exam.{CloseExamError, Exam, ExamEndpoints, ExamError, ExamForm, ExamFormValidationError, ExamId, OpenExamError}
+import exam.{
+  CloseExamError,
+  Exam,
+  ExamDoesNotExist,
+  ExamEndpoints,
+  ExamError,
+  ExamForm,
+  ExamFormValidationError,
+  ExamId,
+  ExamStatusMismatch,
+  NotAnOwner,
+  OpenExamError
+}
 import infrastructure.auth.AuthenticationError
-import question.{AddQuestionError, DeleteQuestionError, Question, QuestionEndpoints, QuestionForm, QuestionId}
+import question.{AddQuestionError, DeleteQuestionError, PublicQuestion, Question, QuestionEndpoints, QuestionForm, QuestionId, QuestionNotFound}
+import submission.{Submission, SubmissionEndpoints, SubmissionError, SubmissionId}
+import answers.{Answer, AnswerDoesNotExist, AnswerEndpoints, AnswerForm, AnswerServiceError, GradeAnswerForm, InvalidPointsAwarded}
 import user.{LoginResponse, User, UserEndpoints, UserLoginForm, UserRegistrationError, UserRegistrationForm}
 
 class ExamIOApiClient(client: ApiClient):
@@ -35,3 +49,49 @@ class ExamIOApiClient(client: ApiClient):
   def deleteQuestion(examId: ExamId, questionId: QuestionId, token: String)
     : IO[Either[AuthenticationError | DeleteQuestionError, Unit]] =
     client.secureRequest(QuestionEndpoints.deleteQuestionEndpoint)(token)(examId, questionId)
+
+  def listOpenExams(token: String): IO[Either[AuthenticationError, List[Exam]]] =
+    client.secureRequest(ExamEndpoints.getOpenExamsEndpoint)(token)(())
+
+  def getMySubmissions(token: String): IO[Either[AuthenticationError, List[Submission]]] =
+    client.secureRequest(SubmissionEndpoints.getMySubmissionsEndpoint)(token)(())
+
+  def createSubmission(examId: ExamId, token: String)
+    : IO[Either[AuthenticationError | ExamError | SubmissionError, Submission]] =
+    client.secureRequest(SubmissionEndpoints.createSubmissionEndpoint)(token)(examId)
+
+  def finishSubmission(examId: ExamId, submissionId: SubmissionId, token: String)
+    : IO[Either[AuthenticationError | ExamError | SubmissionError, Submission]] =
+    client.secureRequest(SubmissionEndpoints.finishSubmissionEndpoint)(token)(examId, submissionId)
+
+  def getResult(examId: ExamId, submissionId: SubmissionId, token: String)
+    : IO[Either[AuthenticationError | ExamError | SubmissionError, Submission]] =
+    client.secureRequest(SubmissionEndpoints.getResultEndpoint)(token)(examId, submissionId)
+
+  def getStudentQuestions(examId: ExamId, submissionId: SubmissionId, token: String)
+    : IO[Either[AuthenticationError | ExamError | SubmissionError, List[PublicQuestion]]] =
+    client.secureRequest(QuestionEndpoints.getStudentQuestionsEndpoint)(token)(examId, submissionId)
+
+  def getAnswer(examId: ExamId, submissionId: SubmissionId, questionId: QuestionId, token: String)
+    : IO[Either[AuthenticationError | AnswerServiceError, Answer]] =
+    client.secureRequest(AnswerEndpoints.getAnswerEndpoint)(token)(examId, submissionId, questionId)
+
+  def addAnswer(examId: ExamId, submissionId: SubmissionId, questionId: QuestionId, form: AnswerForm, token: String)
+    : IO[Either[AuthenticationError | AnswerServiceError, Answer]] =
+    client.secureRequest(AnswerEndpoints.addAnswerEndpoint)(token)(examId, submissionId, questionId, form)
+
+  def clearAnswer(examId: ExamId, submissionId: SubmissionId, questionId: QuestionId, token: String)
+    : IO[Either[AuthenticationError | AnswerServiceError, Unit]] =
+    client.secureRequest(AnswerEndpoints.clearAnswerEndpoint)(token)(examId, submissionId, questionId)
+
+  def getResults(examId: ExamId, token: String): IO[Either[AuthenticationError | ExamError, List[Submission]]] =
+    client.secureRequest(SubmissionEndpoints.getResultsEndpoint)(token)(examId)
+
+  def gradeAnswer(examId: ExamId, submissionId: SubmissionId, questionId: QuestionId, form: GradeAnswerForm, token: String): IO[
+    Either[
+      AuthenticationError | ExamDoesNotExist | NotAnOwner | ExamStatusMismatch | QuestionNotFound | AnswerDoesNotExist |
+        InvalidPointsAwarded,
+      Answer
+    ]
+  ] =
+    client.secureRequest(AnswerEndpoints.gradeAnswerEndpoint)(token)(examId, submissionId, questionId, form)

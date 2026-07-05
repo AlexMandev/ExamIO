@@ -11,17 +11,32 @@ object CommonFlow:
   def startApp(client: ExamIOApiClient): IO[Unit] = greet >> mainLoop(client, false)
 
   def mainLoop(client: ExamIOApiClient, clearTerminal: Boolean): IO[Unit] =
-    for
-      _ <- if clearTerminal then clearConsole else IO.pure(())
-      _ <- displayMenu
-      command <- promptForStringLine("Choose an option: ").map(_.trim)
-      _ <- command match
-        case "1" => startTeacherFlow(client) >> mainLoop(client, true)
-        case "2" => startStudentFlow(client) >> mainLoop(client, true)
-        case "3" => registerFlow(client) >> mainLoop(client, true)
-        case "4" => ().pure[IO]
-        case _ => IO.println("Invalid option.") >> mainLoop(client, true)
-    yield ()
+    recoverToMenu(
+      for
+        _ <- if clearTerminal then clearConsole else IO.pure(())
+        _ <- displayMenu
+        command <- promptForStringLine("Choose an option: ").map(_.trim)
+        _ <- command match
+          case "1" => startTeacherFlow(client) >> mainLoop(client, true)
+          case "2" => startStudentFlow(client) >> mainLoop(client, true)
+          case "3" => registerFlow(client) >> mainLoop(client, true)
+          case "4" => ().pure[IO]
+          case _ => IO.println("Invalid option.") >> mainLoop(client, true)
+      yield (),
+      retry = mainLoop(client, true)
+    )
+
+  def recoverToMenu(action: IO[Unit], retry: => IO[Unit]): IO[Unit] =
+    action.handleErrorWith { t =>
+      IO.println("") >> IO.println(s"${describeError(t)}") >> pressEnterToContinue >> retry
+    }
+
+  private def describeError(t: Throwable): String = t match
+    case _: java.net.ConnectException => "Could not connect to the server."
+    case _: java.io.IOException => "Lost connection to the server."
+    case e: IllegalArgumentException if Option(e.getMessage).exists(_.contains("Cannot decode")) =>
+      "Unexpected response from the server (this feature may not be available yet)."
+    case e => s"Something went wrong: ${e.getMessage}"
 
   private def startTeacherFlow(client: ExamIOApiClient): IO[Unit] =
     loginFlow(client).flatMap:
@@ -31,7 +46,7 @@ object CommonFlow:
 
   private def startStudentFlow(client: ExamIOApiClient): IO[Unit] =
     loginFlow(client).flatMap:
-      case Some(LoginResponse(token, UserRole.STUDENT)) => StudentFlow(client, token).run
+      case Some(LoginResponse(token, UserRole.STUDENT)) => StudentFlow(client, token).run()
       case Some(_) => IO.println("This is not a student account.") >> pressEnterToContinue >> mainLoop(client, true)
       case None => pressEnterToContinue >> mainLoop(client, true)
 

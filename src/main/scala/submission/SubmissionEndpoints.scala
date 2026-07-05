@@ -19,6 +19,13 @@ object SubmissionEndpoints:
 
   private val submissionEndpoint = submissionBaseEndpoint.in(path[SubmissionId]("submissionId") / "submit")
 
+  val getMySubmissionsEndpoint = apiBaseEndpoint
+    .in("submissions")
+    .tag("Submissions")
+    .secure(Some(UserRole.STUDENT))
+    .out(jsonBody[List[Submission]])
+    .get
+
   val createSubmissionEndpoint = submissionBaseEndpoint
     .secure(
       Some(UserRole.STUDENT),
