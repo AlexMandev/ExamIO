@@ -35,7 +35,7 @@ object SubmissionEndpoints:
     .in("results")
     .secure(
       Some(UserRole.TEACHER),
-      oneOf[ExamDoesNotExist | NotAnOwner](
+      oneOf[ExamError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotAnOwner]))
       )
@@ -47,9 +47,10 @@ object SubmissionEndpoints:
     .in(path[SubmissionId]("submissionId") / "result")
     .secure(
       Some(UserRole.STUDENT),
-      oneOf[ExamDoesNotExist | SubmissionDoesNotExist | NotSubmissionOwner](
+      oneOf[ExamError | SubmissionError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionNotInExam])),
         oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotSubmissionOwner]))
       )
     )

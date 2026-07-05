@@ -12,18 +12,25 @@ import java.util.UUID
 
 import user.StudentId
 import exam.{ExamId, ExamError, ExamService, ExamStatus, ExamDoesNotExist}
+import user.TeacherId
+import exam.NotAnOwner
 
 class SubmissionService(submissionRepository: SubmissionRepository, examService: ExamService):
   def getSubmissionById(submissionId: SubmissionId, examId: ExamId, studentId: StudentId)
-    : IO[Either[ExamDoesNotExist | SubmissionDoesNotExist | NotSubmissionOwner, Submission]] =
+    : IO[Either[ExamDoesNotExist | SubmissionDoesNotExist | SubmissionNotInExam | NotSubmissionOwner, Submission]] =
     EitherT(
       submissionRepository
         .getSubmissionById(submissionId)
         .map(_.toRight(SubmissionDoesNotExist(submissionId)))
     )
-      .ensureOr(sub => ExamDoesNotExist(examId))(_.examId == examId)
+
+      // that's not too ok
+      .ensureOr(sub => SubmissionNotInExam(sub.id, examId))(_.examId == examId)
       .ensureOr(sub => NotSubmissionOwner(studentId, sub.id))(_.studentId == studentId)
       .value
+
+  def autoSubmitPastDeadline: IO[List[Submission]] =
+    submissionRepository.autoSubmitPastDeadline
 
   def createSubmission(submissionForm: SubmissionForm): IO[Either[ExamError | SubmissionError, Submission]] =
     val result =
@@ -38,16 +45,10 @@ class SubmissionService(submissionRepository: SubmissionRepository, examService:
 
         newSubmission = NewSubmission(SubmissionId(id), submissionForm.examId, submissionForm.studentId)
 
-        submission <- EitherT(submissionRepository.createSubmission(newSubmission))
+        submission <- EitherT(submissionRepository.createSubmission(newSubmission, exam.timeLimitMinutes))
       yield submission
 
     result.value
-
-  // 1. exam exists - validateExamStatus
-  // 2. exam is open - validateExamStatus
-  // 3. submission exists - getSubmission
-  // 4. submission has the correct studentId - getSubmission
-  // 5. the submission's status is 'InProgress'
 
   def finishSubmission(studentId: StudentId, submissionId: SubmissionId, examId: ExamId)
     : IO[Either[ExamError | SubmissionError, Submission]] =
@@ -79,6 +80,20 @@ class SubmissionService(submissionRepository: SubmissionRepository, examService:
 
     result.value
 
+  def getResults(examId: ExamId, teacherId: TeacherId): IO[Either[ExamError, List[Submission]]] =
+    val result: EitherT[IO, ExamDoesNotExist | NotAnOwner, List[Submission]] =
+      for
+        exam <- EitherT(examService.findById(examId))
+        _ <- examService.checkPermissions(exam, teacherId)
+        submissions <- EitherT.liftF(submissionRepository.getSubmissionsForExam(examId))
+      yield submissions
+
+    result.value
+
+  // rename the topmost function for consistency with endpoint name
+  def getResult(examId: ExamId, submissionId: SubmissionId, studentId: StudentId): IO[Either[ExamError | SubmissionError, Submission]] =
+    getSubmissionById(submissionId, examId, studentId)
+
   private def checkForAnotherCreatedSubmission(examId: ExamId, studentId: StudentId)
     : IO[Either[SubmissionAlreadyExists, Unit]] =
     for
@@ -89,17 +104,22 @@ class SubmissionService(submissionRepository: SubmissionRepository, examService:
     yield result
 
 sealed trait SubmissionError derives Codec, Schema
+
 case class SubmissionAlreadyExists(studentId: StudentId, examId: ExamId, submissionId: SubmissionId)
     extends SubmissionError derives Codec.AsObject, Schema
-case class AlreadySubmitted(studentId: StudentId, examId: ExamId, submissionId: SubmissionId) extends SubmissionError
-    derives Codec.AsObject,
-      Schema
-case class SubmissionDoesNotExist(submissionId: SubmissionId) extends SubmissionError derives Codec.AsObject, Schema
+
+case class AlreadySubmitted(studentId: StudentId, examId: ExamId, submissionId: SubmissionId)
+  extends SubmissionError derives Codec.AsObject, Schema
+
+case class SubmissionDoesNotExist(submissionId: SubmissionId)
+  extends SubmissionError derives Codec.AsObject, Schema
+
+case class SubmissionNotInExam(submissionId: SubmissionId, examId: ExamId)
+  extends SubmissionError derives Codec.AsObject, Schema
 
 sealed trait SubmissionPermissionError extends SubmissionError derives Codec, Schema
 case class NotSubmissionOwner(studentId: StudentId, submissionId: SubmissionId) extends SubmissionPermissionError
-    derives Codec.AsObject,
-      Schema
+    derives Codec.AsObject, Schema
 
 sealed trait SubmissionStatusError extends SubmissionError derives Codec, Schema
 case class SubmissionNotInProgress(submissionId: SubmissionId, submissionStatus: SubmissionStatus)

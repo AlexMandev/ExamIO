@@ -13,7 +13,7 @@ import utils.jsonBodyTypedError
 import user.UserRole
 import question.{QuestionId, QuestionNotFound}
 import exam.{ExamId, ExamDoesNotExist, ExamStatusMismatch, NotAnOwner}
-import submission.{SubmissionId, SubmissionDoesNotExist, AlreadySubmitted, NotSubmissionOwner}
+import submission.{SubmissionId, SubmissionDoesNotExist, AlreadySubmitted, NotSubmissionOwner, SubmissionNotInExam}
 
 object AnswerEndpoints:
   private val answerBaseEndpoint = apiBaseEndpoint
@@ -23,13 +23,13 @@ object AnswerEndpoints:
     .tag("Answers")
 
   def getAnswerEndpoint = answerBaseEndpoint
-    // FIX: this probably won't allow for the teacher to access answers
     .secure(
       Option(UserRole.STUDENT),
       oneOf[AnswerServiceError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionNotInExam])),
         oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotSubmissionOwner])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[AnswerDoesNotExist]))
       )
@@ -44,6 +44,7 @@ object AnswerEndpoints:
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionNotInExam])),
         oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotSubmissionOwner])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[AnswerDoesNotExist])),
         oneOfVariant(statusCode(Conflict).and(jsonBodyTypedError[ExamStatusMismatch])),
@@ -63,6 +64,7 @@ object AnswerEndpoints:
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[QuestionNotFound])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionDoesNotExist])),
+        oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[SubmissionNotInExam])),
         oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotSubmissionOwner])),
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[AnswerDoesNotExist]))
       )

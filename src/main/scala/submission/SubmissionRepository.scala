@@ -12,16 +12,35 @@ import exam.ExamId
 import user.StudentId
 
 class SubmissionRepository(dbTransactor: DBTransactor):
-  def createSubmission(newSubmission: NewSubmission): IO[Either[SubmissionError, Submission]] =
+  def createSubmission(newSubmission: NewSubmission, timeLimitInMinutes: Int): IO[Either[SubmissionError, Submission]] =
     sql"""
-        INSERT INTO submissions (id, exam_id, student_id)
-        VALUES (${newSubmission.id}, ${newSubmission.examId}, ${newSubmission.studentId})
+        INSERT INTO submissions (id, exam_id, student_id, started_at, deadline)
+        VALUES (  ${newSubmission.id},
+                  ${newSubmission.examId},
+                  ${newSubmission.studentId},
+                  NOW(),
+                  NOW() + make_interval(mins => $timeLimitInMinutes)
+               )
         RETURNING *
       """
       .query[Submission]
       .unique
       .transact(dbTransactor)
       .map(_.asRight)
+
+  def autoSubmitPastDeadline: IO[List[Submission]] =
+    sql"""
+        UPDATE submissions
+        SET status = 'Finished',
+            finished_at = NOW()
+        WHERE status = 'InProgress'
+          AND finished_at IS NULL
+          AND deadline <= NOW()
+        RETURNING *
+      """
+      .query[Submission]
+      .to[List]
+      .transact(dbTransactor)
 
   def getSubmissionById(submissionId: SubmissionId): IO[Option[Submission]] =
     sql"""

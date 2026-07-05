@@ -5,6 +5,7 @@ import sttp.tapir.server.ServerEndpoint
 import infrastructure.auth.AuthenticationService
 
 import user.StudentId
+import user.TeacherId
 
 class SubmissionController(submissionService: SubmissionService, authenticationService: AuthenticationService):
   import authenticationService.*
@@ -16,6 +17,14 @@ class SubmissionController(submissionService: SubmissionService, authenticationS
   def finishSubmission = SubmissionEndpoints.finishSubmissionEndpoint.authenticate.serverLogic {
     user => (examId, submissionId) =>
       submissionService.finishSubmission(StudentId(user.id), submissionId, examId)
+  }
+
+  def getResults = SubmissionEndpoints.getResultsEndpoint.authenticate.serverLogic {
+    user => examId => submissionService.getResults(examId, TeacherId(user.id))
+  }
+
+  def getResult = SubmissionEndpoints.getResultEndpoint.authenticate.serverLogic {
+    user => (examId, submissionId) => submissionService.getResult(examId, submissionId, StudentId(user.id))
   }
 
   val endpoints: List[ServerEndpoint[Any, IO]] = List(createSubmission, finishSubmission)

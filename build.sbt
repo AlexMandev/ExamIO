@@ -49,7 +49,7 @@ libraryDependencies ++= Seq(
   "org.fusesource.jansi" % "jansi" % "2.4.3",
 
   "org.scalatest" %% "scalatest" % "3.2.20" % Test,
-  "org.typelevel" %% "cats-effect-testing-scalatest" % "1.5.0" % Test
+  "org.typelevel" %% "cats-effect-testing-scalatest" % "1.5.0" % Test,
 )
 
 assembly / assemblyMergeStrategy := {

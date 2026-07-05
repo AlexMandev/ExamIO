@@ -6,8 +6,10 @@ import sttp.tapir.server.ServerEndpoint
 import infrastructure.auth.AuthenticationService
 
 import user.StudentId
+import grading.GradingService
+import user.TeacherId
 
-class AnswerController(answerService: AnswerService, authenticationService: AuthenticationService):
+class AnswerController(answerService: AnswerService, gradingService: GradingService, authenticationService: AuthenticationService):
   import authenticationService.*
 
   def getAnswer = AnswerEndpoints.getAnswerEndpoint.authenticate
@@ -23,6 +25,11 @@ class AnswerController(answerService: AnswerService, authenticationService: Auth
   def clearAnswer = AnswerEndpoints.clearAnswerEndpoint.authenticate.serverLogic {
     user => (examId, submissionId, questionId) =>
       answerService.clearAnswer(StudentId(user.id), questionId, submissionId, examId)
+  }
+
+  def gradeAnswer = AnswerEndpoints.gradeAnswerEndpoint.authenticate.serverLogic {
+    user => (examId, submissionId, questionId, gradeAnswerForm) =>
+      gradingService.gradeShortAnswer(TeacherId(user.id), examId, submissionId, questionId, gradeAnswerForm)
   }
 
   val endpoints: List[ServerEndpoint[Any, IO]] = List(getAnswer, addAnswer, clearAnswer)
