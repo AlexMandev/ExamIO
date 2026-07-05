@@ -28,16 +28,19 @@ import client.utils.OptionUtils.*
 
 class StudentFlow(client: ExamIOApiClient, token: String):
   def run(preliminaryMessage: Option[String] = None): IO[Unit] =
-    for
-      _ <- clearConsole
-      _ <- preliminaryMessage.printLn
-      _ <- displayMenu
-      command <- promptForString("> ").map(_.trim)
-      _ <- command match
-        case "1" => browseOpenExamsFlow >> run()
-        case "2" => IO.println("Logged out.") >> pressEnterToContinue
-        case _ => run()
-    yield ()
+    recoverToMenu(
+      for
+        _ <- clearConsole
+        _ <- preliminaryMessage.printLn
+        _ <- displayMenu
+        command <- promptForString("> ").map(_.trim)
+        _ <- command match
+          case "1" => browseOpenExamsFlow >> run()
+          case "2" => IO.println("Logged out.") >> pressEnterToContinue
+          case _ => run()
+      yield (),
+      retry = run()
+    )
 
   private def displayMenu: IO[Unit] =
     IO.println(
