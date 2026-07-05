@@ -35,7 +35,7 @@ object SubmissionEndpoints:
     .in("results")
     .secure(
       Some(UserRole.TEACHER),
-      oneOf[ExamDoesNotExist | NotAnOwner](
+      oneOf[ExamError](
         oneOfVariant(statusCode(NotFound).and(jsonBodyTypedError[ExamDoesNotExist])),
         oneOfVariant(statusCode(Forbidden).and(jsonBodyTypedError[NotAnOwner]))
       )

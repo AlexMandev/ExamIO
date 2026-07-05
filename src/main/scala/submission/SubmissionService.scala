@@ -12,6 +12,8 @@ import java.util.UUID
 
 import user.StudentId
 import exam.{ExamId, ExamError, ExamService, ExamStatus, ExamDoesNotExist}
+import user.TeacherId
+import exam.NotAnOwner
 
 class SubmissionService(submissionRepository: SubmissionRepository, examService: ExamService):
   def getSubmissionById(submissionId: SubmissionId, examId: ExamId, studentId: StudentId)
@@ -75,6 +77,17 @@ class SubmissionService(submissionRepository: SubmissionRepository, examService:
       yield submission
 
     result.value
+
+  def getResults(examId: ExamId, teacherId: TeacherId): IO[Either[ExamError, List[Submission]]] =
+    val result: EitherT[IO, ExamDoesNotExist | NotAnOwner, List[Submission]] =
+      for
+        exam <- EitherT(examService.findById(examId))
+        _ <- examService.checkPermissions(exam, teacherId)
+        submissions <- EitherT.liftF(submissionRepository.getSubmissionsForExam(examId))
+      yield submissions
+
+    result.value
+
 
   private def checkForAnotherCreatedSubmission(examId: ExamId, studentId: StudentId)
     : IO[Either[SubmissionAlreadyExists, Unit]] =
