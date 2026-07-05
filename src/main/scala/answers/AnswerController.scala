@@ -14,7 +14,7 @@ class AnswerController(answerService: AnswerService, gradingService: GradingServ
 
   def getAnswer = AnswerEndpoints.getAnswerEndpoint.authenticate
     .serverLogic { user => (examId, submissionId, questionId) =>
-      answerService.getAnswer(user.id, questionId, submissionId, examId)
+      answerService.getAnswer(user, questionId, submissionId, examId)
     }
 
   def addAnswer = AnswerEndpoints.addAnswerEndpoint.authenticate.serverLogic {
@@ -32,4 +32,4 @@ class AnswerController(answerService: AnswerService, gradingService: GradingServ
       gradingService.gradeShortAnswer(TeacherId(user.id), examId, submissionId, questionId, gradeAnswerForm)
   }
 
-  val endpoints: List[ServerEndpoint[Any, IO]] = List(getAnswer, addAnswer, clearAnswer)
+  val endpoints: List[ServerEndpoint[Any, IO]] = List(getAnswer, addAnswer, clearAnswer, gradeAnswer)

@@ -26,4 +26,4 @@ class QuestionController(questionService: QuestionService, authenticationService
       questionService.deleteQuestion(questionId, examId, TeacherId(user.id))
   }
 
-  val endpoints: List[ServerEndpoint[Any, IO]] = List(getExamQuestions, addQuestion, deleteQuestion)
+  val endpoints: List[ServerEndpoint[Any, IO]] = List(getExamQuestions, getStudentQuestions, addQuestion, deleteQuestion)

@@ -1,6 +1,7 @@
 package submission
 
 import cats.effect.IO
+import cats.syntax.all.*
 import sttp.tapir.server.ServerEndpoint
 import infrastructure.auth.AuthenticationService
 
@@ -9,6 +10,10 @@ import user.TeacherId
 
 class SubmissionController(submissionService: SubmissionService, authenticationService: AuthenticationService):
   import authenticationService.*
+
+  def getMySubmissions = SubmissionEndpoints.getMySubmissionsEndpoint.authenticate.serverLogic { user => _ =>
+    submissionService.getFinishedSubmissions(StudentId(user.id)).map(_.asRight)
+  }
 
   def createSubmission = SubmissionEndpoints.createSubmissionEndpoint.authenticate.serverLogic { user => examId =>
     submissionService.createSubmission(SubmissionForm(examId, StudentId(user.id)))
@@ -27,4 +32,5 @@ class SubmissionController(submissionService: SubmissionService, authenticationS
     user => (examId, submissionId) => submissionService.getResult(examId, submissionId, StudentId(user.id))
   }
 
-  val endpoints: List[ServerEndpoint[Any, IO]] = List(createSubmission, finishSubmission)
+  val endpoints: List[ServerEndpoint[Any, IO]] =
+    List(getMySubmissions, createSubmission, finishSubmission, getResults, getResult)
