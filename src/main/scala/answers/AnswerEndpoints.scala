@@ -23,7 +23,6 @@ object AnswerEndpoints:
     .tag("Answers")
 
   def getAnswerEndpoint = answerBaseEndpoint
-    // FIX: this probably won't allow for the teacher to access answers
     .secure(
       Option(UserRole.STUDENT),
       oneOf[AnswerServiceError](

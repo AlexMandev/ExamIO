@@ -8,6 +8,7 @@ import sttp.tapir.server.ServerEndpoint
 import question.QuestionService
 import submission.SubmissionService
 import exam.ExamService
+import grading.GradingService
 
 case class AnswerModule(
   answerRepository: AnswerRepository,
@@ -21,9 +22,10 @@ object AnswerModule:
     questionService: QuestionService,
     submissionService: SubmissionService,
     examService: ExamService,
+    gradingService: GradingService,
     authenticationService: AuthenticationService
   ): Resource[IO, AnswerModule] =
     val answerRepository = AnswerRepository(dbTransactor)
     val answerService = AnswerService(answerRepository, questionService, submissionService, examService)
-    val answerController = AnswerController(answerService, authenticationService)
+    val answerController = AnswerController(answerService, gradingService, authenticationService)
     Resource.pure(AnswerModule(answerRepository, answerService, answerController.endpoints))

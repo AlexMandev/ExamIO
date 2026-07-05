@@ -13,7 +13,18 @@ import question.{
   ShortAnswerData,
   TrueFalseData
 }
-import submission.{Submission, SubmissionRepository, SubmissionStatus}
+import submission.{Submission, SubmissionId, SubmissionRepository, SubmissionStatus}
+import answers.GradeAnswerForm
+import exam.ExamDoesNotExist
+import user.TeacherId
+import exam.NotAnOwner
+import exam.ExamStatusMismatch
+import exam.ExamStatus
+import cats.data.EitherT
+import question.QuestionNotFound
+import answers.AnswerDoesNotExist
+import answers.InvalidPointsAwarded
+import answers.AnswerType
 
 class GradingService(
   examRepository: ExamRepository,
@@ -29,6 +40,33 @@ class GradingService(
       _ <- submissions.filter(_.status == SubmissionStatus.Finished).traverse(gradeSubmission(_, questions)).void
       _ <- maybeGradeExam(examId)
     yield ()
+
+  def gradeShortAnswer(teacherId: TeacherId, examId: ExamId, submissionId: SubmissionId, questionId: QuestionId, gradeAnswerForm: GradeAnswerForm):
+    IO[Either[ExamDoesNotExist | NotAnOwner | ExamStatusMismatch | QuestionNotFound | AnswerDoesNotExist | InvalidPointsAwarded, Answer]] =
+      val result: EitherT[IO, ExamDoesNotExist | NotAnOwner | ExamStatusMismatch | QuestionNotFound | AnswerDoesNotExist | InvalidPointsAwarded, Answer] =
+        for
+          exam <-
+            EitherT(examRepository.getExamById(examId).map(_.toRight(ExamDoesNotExist(examId))))
+              .ensure(NotAnOwner(teacherId, examId))(_.teacherId == teacherId)
+              .ensure(ExamStatusMismatch(examId, "Exam is not closed"))(_.status == ExamStatus.CLOSED)
+          question <-
+            EitherT(questionRepository.getQuestionById(questionId, examId).map(_.toRight(QuestionNotFound(questionId))))
+              .ensure(QuestionNotFound(questionId))(q => q.points >= gradeAnswerForm.points && q.points >= 0)
+              .ensure(InvalidPointsAwarded(""))(_.points >= gradeAnswerForm.points)
+          answer <-
+            EitherT(answerRepository.getAnswer(questionId, submissionId).map(_.toRight(AnswerDoesNotExist(questionId, submissionId))))
+
+          gradedAnswer = answer.copy(pointsAwarded = Some(gradeAnswerForm.points))
+
+          _ <- EitherT.liftF(answerRepository.setPointsAwarded(questionId, submissionId, gradeAnswerForm.points))
+
+          // TODO: grade submission too
+
+          _ <- EitherT.liftF(maybeGradeExam(examId))
+
+        yield gradedAnswer
+
+      result.value
 
   private def gradeSubmission(submission: Submission, questions: List[Question]): IO[Unit] =
     val questionsById = questions.map(q => q.id -> q).toMap

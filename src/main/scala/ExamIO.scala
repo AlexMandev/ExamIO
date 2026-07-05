@@ -30,6 +30,7 @@ object ExamIO extends IOApp.Simple:
     examModule <- ExamModule(dbModule.dbTransactor, authenticationService)
     submissionModule <- SubmissionModule(dbModule.dbTransactor, examModule.examService, authenticationService)
     questionModule <- QuestionModule(dbModule.dbTransactor, examModule.examService, submissionModule.submissionService, authenticationService)
+    // FIX: this is broken
     answerModule <- AnswerModule(dbModule.dbTransactor, questionModule.questionService, submissionModule.submissionService, examModule.examService, authenticationService)
 
     apiEndpoints = userModule.endpoints ++ examModule.endpoints ++ questionModule.endpoints ++ submissionModule.endpoints ++ answerModule.endpoints
