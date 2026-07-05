@@ -61,7 +61,7 @@ class GradingService(
 
           _ <- EitherT.liftF(answerRepository.setPointsAwarded(questionId, submissionId, gradeAnswerForm.points))
 
-          // TODO: grade submission too
+          _ <- EitherT.liftF(sealSubmissionIfFullyGraded(submissionId))
 
           _ <- EitherT.liftF(maybeGradeExam(examId))
 
@@ -74,7 +74,8 @@ class GradingService(
     for
       answers <- answerRepository.getAllForSubmissionOrderedByQuestionPosition(submission.id)
       gradedPoints <- answers.traverse(gradeAnswerIfAutomatic(submission, questionsById, _))
-      _ <- if gradedPoints.forall(_.isDefined) then sealSubmission(submission, gradedPoints.flatten.sum) else IO.unit
+      _ <-
+        if gradedPoints.forall(_.isDefined) then sealSubmission(submission.id, gradedPoints.flatten.sum) else IO.unit
     yield ()
 
   private def gradeAnswerIfAutomatic(
@@ -89,8 +90,16 @@ class GradingService(
       case _ =>
         IO.pure(answer.pointsAwarded)
 
-  private def sealSubmission(submission: Submission, score: BigDecimal): IO[Unit] =
-    submissionRepository.gradeSubmission(submission.id, score)
+  private def sealSubmissionIfFullyGraded(submissionId: SubmissionId): IO[Unit] =
+    for
+      answers <- answerRepository.getAllForSubmissionOrderedByQuestionPosition(submissionId)
+      _ <-
+        if answers.forall(_.pointsAwarded.isDefined) then sealSubmission(submissionId, answers.flatMap(_.pointsAwarded).sum)
+        else IO.unit
+    yield ()
+
+  private def sealSubmission(submissionId: SubmissionId, score: BigDecimal): IO[Unit] =
+    submissionRepository.gradeSubmission(submissionId, score)
 
   def maybeGradeExam(examId: ExamId): IO[Unit] =
     for
